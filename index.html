@@ -14,138 +14,190 @@
   }
   *{box-sizing:border-box}
   body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,#1b2a44 0%,var(--bg) 60%);
-       color:var(--text);font-family:Inter,system-ui,sans-serif;display:flex;justify-content:center;padding:32px 16px}
-  .wrap{width:100%;max-width:420px}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+       color:var(--text);font-family:Inter,system-ui,sans-serif;padding:24px 16px}
+  header{display:flex;align-items:center;gap:12px;margin:0 auto 20px;max-width:1440px}
   .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c3aed);
-        display:grid;place-items:center;font-weight:700;font-size:20px}
+        display:grid;place-items:center;font-weight:700;font-size:20px;flex:0 0 auto}
   h1{font-size:20px;margin:0}
+  h2{font-size:15px;margin:0}
   .sub{color:var(--muted);font-size:13px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 10px 40px #0006}
-  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:16px}
-  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 10px 40px #0006}
+
+  /* layout: leads | dialer | transcript */
+  .app{display:grid;grid-template-columns:minmax(300px,1fr) 400px minmax(300px,1fr);gap:18px;max-width:1440px;margin:0 auto;align-items:start}
+  .side{position:sticky;top:16px;display:flex;flex-direction:column;max-height:calc(100vh - 32px)}
+  .side .scroll{overflow:auto;flex:1;min-height:120px;margin:0 -6px;padding:0 6px}
+  #loginWrap{max-width:420px;margin:0 auto}
+  @media (max-width:1100px){
+    .app{grid-template-columns:1fr;max-width:480px}
+    .side{position:static;max-height:none}
+    .side .scroll{max-height:420px}
+    #center{order:-1}
+  }
+
+  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:0 0 auto}
   .dot.ok{background:var(--green-h);box-shadow:0 0 8px var(--green-h)}
   .dot.busy{background:var(--amber);box-shadow:0 0 8px var(--amber)}
   .dot.err{background:var(--red-h)}
-  input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:12px;
-        padding:14px 16px;font-size:16px;outline:none}
-  input:focus{border-color:var(--accent)}
+  input,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:12px;
+        padding:14px 16px;font-size:16px;outline:none;font-family:inherit}
+  input:focus,select:focus{border-color:var(--accent)}
   #number{font-family:'JetBrains Mono',monospace;font-size:24px;text-align:center;letter-spacing:1px}
+  #biz{margin-top:10px;font-size:14px;padding:10px 14px}
   .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
   .key{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:12px 0;
        font-size:22px;font-weight:600;cursor:pointer;transition:.12s;user-select:none}
   .key small{display:block;font-size:9px;letter-spacing:2px;color:var(--muted);font-weight:500;height:11px}
   .key:hover{background:#28313d}.key:active{transform:scale(.96)}
   .row{display:flex;gap:10px}
-  .btn{flex:1;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:600;color:#fff;cursor:pointer;transition:.12s}
+  .btn{flex:1;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:600;color:#fff;cursor:pointer;transition:.12s;font-family:inherit}
   .btn:disabled{opacity:.4;cursor:not-allowed}
   .call{background:var(--green)}.call:hover:not(:disabled){background:var(--green-h)}
   .hang{background:var(--red)}.hang:hover:not(:disabled){background:var(--red-h)}
   .ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+  .ghost:hover:not(:disabled){background:#28313d}
   .ghost.on{background:var(--amber);color:#111;border-color:var(--amber)}
   .primary{background:var(--accent)}
   .back{flex:0 0 56px}
+  .small{padding:7px 12px;font-size:13px;flex:0 0 auto;border-radius:10px}
+  .toprow{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
   .live{display:none;text-align:center;margin-bottom:14px}
   .live.show{display:block}
   .live .who{font-family:'JetBrains Mono',monospace;font-size:20px}
   .live .timer{color:var(--green-h);font-family:'JetBrains Mono',monospace;margin-top:4px}
-  .log{margin-top:18px;max-height:170px;overflow:auto;font-size:12px;color:var(--muted);
-       border-top:1px solid var(--line);padding-top:12px}
+  .log{margin-top:16px;max-height:150px;overflow:auto;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
   .log div{padding:3px 0}.log b{color:var(--text);font-weight:500}
   #login .err{color:var(--red-h);font-size:13px;min-height:18px;margin-top:8px}
   .hidden{display:none!important}
-  /* incoming call overlay */
-  .overlay{position:fixed;inset:0;background:#000a;display:grid;place-items:center;z-index:10;padding:16px}
-  .ring{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:28px;width:100%;max-width:340px;text-align:center}
-  .ring .pulse{width:72px;height:72px;margin:0 auto 14px;border-radius:50%;background:var(--green);display:grid;place-items:center;font-size:30px;
-               animation:pulse 1.2s infinite}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 #2ea04399}100%{box-shadow:0 0 0 22px #2ea04300}}
-  .ring .from{font-family:'JetBrains Mono',monospace;font-size:20px;margin:6px 0 20px}
-  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:16px}
-  #biz{margin-top:10px;font-size:14px;padding:10px 14px}
-  .tx{display:none;margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
-      max-height:220px;overflow:auto;font-size:13px;line-height:1.45}
-  .tx.show{display:block}
-  .tx .ln{margin:3px 0}.tx .you{color:#79c0ff}.tx .them{color:#ffa657}
-  .tx .empty{color:var(--muted)}
-  .notes{display:none;margin-top:14px;border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:13px;background:#13233d}
-  .notes.show{display:block}
+
+  /* leads (left) */
+  .find{display:flex;gap:8px;margin-bottom:8px}
+  .find input{padding:10px 12px;font-size:14px}
+  .find .btn{padding:10px 14px;font-size:14px;flex:0 0 auto}
+  .filters{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 10px}
+  .chip{background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .pros{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;transition:.12s;font-size:13px}
+  .pros:hover{border-color:#3b4655}
+  .pros.sel{border-color:var(--accent);background:#17243a}
+  .pros .nm{font-weight:600;font-size:14px;display:flex;justify-content:space-between;gap:8px}
+  .pros .meta{color:var(--muted);font-size:12px;margin-top:2px}
+  .pros .ph{font-family:'JetBrains Mono',monospace;font-size:12px;color:#79c0ff;margin-top:4px}
+  .pros .last{font-size:12px;margin-top:5px;color:#c9d1d9}
+  .pros .acts{display:flex;gap:6px;margin-top:8px}
+  .pros .acts button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit}
+  .pros .acts button:hover{color:var(--text)}
+  .note{font-size:12px;color:var(--muted);margin:2px 0 8px;min-height:16px}
+
+  /* transcript (right) */
+  .tx{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;min-height:180px}
+  .tx .ln{margin:4px 0}.tx .you{color:#79c0ff}.tx .them{color:#ffa657}
+  .tx .empty{color:var(--muted);font-size:13px}
+  .notes{margin-top:12px;border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:13px;background:#13233d}
   .notes h3,.lead h3{margin:0 0 6px;font-size:14px}
   .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:6px}
   .kv span:nth-child(odd){color:var(--muted)}
-  .badge{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;margin-left:6px;vertical-align:middle}
-  .b-hot{background:#da3633}.b-warm{background:#d29922;color:#111}.b-cold{background:#30577e}.b-other{background:#3a414b}
-  .toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-  .toprow .status{margin:0}
-  .small{padding:7px 12px;font-size:13px;flex:0 0 auto;border-radius:10px}
+  .badge{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;vertical-align:middle;white-space:nowrap}
+  .b-hot,.b-meeting{background:#da3633;color:#fff}.b-warm{background:#d29922;color:#111}.b-cold{background:#30577e;color:#fff}
+  .b-new{background:#238636;color:#fff}.b-other{background:#3a414b;color:#ddd}
   .lead{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13px}
   .lead .when{color:var(--muted);font-size:11px;float:right}
   .lead .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;margin-top:6px;padding:0}
+
+  .overlay{position:fixed;inset:0;background:#000a;display:grid;place-items:center;z-index:10;padding:16px}
+  .ring{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:28px;width:100%;max-width:340px;text-align:center}
+  .ring .pulse{width:72px;height:72px;margin:0 auto 14px;border-radius:50%;background:var(--green);display:grid;place-items:center;font-size:30px;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #2ea04399}100%{box-shadow:0 0 0 22px #2ea04300}}
+  .ring .from{font-family:'JetBrains Mono',monospace;font-size:20px;margin:6px 0 20px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div class="logo">E</div>
-    <div><h1>Eddieco Call Panel</h1><div class="sub" id="callerIdLabel">Browser softphone</div></div>
-  </header>
+<header>
+  <div class="logo">E</div>
+  <div><h1>Eddieco Call Panel</h1><div class="sub" id="callerIdLabel">Browser softphone</div></div>
+</header>
 
-  <!-- Login -->
+<!-- Login -->
+<div id="loginWrap">
   <div class="card" id="login">
     <p style="margin-top:0;color:var(--muted);font-size:14px">Enter your server address and panel password to go online.</p>
-    <input id="server" type="url" placeholder="https://eddieco-panel-1234.twil.io" autocomplete="off" style="margin-bottom:10px">
+    <input id="server" type="url" placeholder="https://call-panel-1234.twil.io" autocomplete="off" style="margin-bottom:10px">
     <input id="password" type="password" placeholder="Panel password" autocomplete="current-password">
     <div class="err" id="loginErr"></div>
     <button class="btn primary" id="loginBtn" style="width:100%;margin-top:6px">Go online</button>
   </div>
-
-  <!-- Phone -->
-  <div class="card hidden" id="phone">
-    <div class="toprow">
-      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
-      <button class="btn ghost small" id="leadsBtn">📋 Leads</button>
-    </div>
-
-    <div class="live" id="live">
-      <div class="sub" id="liveLabel">On call with</div>
-      <div class="who" id="liveWho"></div>
-      <div class="timer" id="timer">00:00</div>
-      <div class="sub" id="quality" style="margin-top:4px"></div>
-    </div>
-
-    <input id="number" placeholder="+1 555 555 0123" inputmode="tel" autocomplete="off">
-    <input id="biz" placeholder="Business name (optional — helps the AI notes)" autocomplete="off">
-
-    <div class="pad" id="pad"></div>
-
-    <div class="row" id="idleBtns">
-      <button class="btn call" id="callBtn" disabled>📞 Call</button>
-      <button class="btn ghost back" id="backBtn" title="Delete">⌫</button>
-    </div>
-    <div class="row hidden" id="callBtns">
-      <button class="btn ghost" id="muteBtn">🎙️ Mute</button>
-      <button class="btn hang" id="hangBtn">Hang up</button>
-    </div>
-
-    <div class="tx" id="tx"></div>
-    <div class="notes" id="notes"></div>
-
-    <div class="log" id="log"></div>
-  </div>
-
-  <!-- Leads -->
-  <div class="card hidden" id="leadsCard">
-    <div class="toprow">
-      <h1 style="font-size:17px">📋 Leads</h1>
-      <div class="row" style="flex:0 0 auto">
-        <button class="btn ghost small" id="csvBtn">⬇ CSV</button>
-        <button class="btn primary small" id="backToPhone">← Phone</button>
-      </div>
-    </div>
-    <div id="leadsList" class="sub">Loading…</div>
-  </div>
-  <footer>Powered by Twilio Voice · Eddieco</footer>
 </div>
+
+<div class="app hidden" id="app">
+  <!-- LEFT: leads to call -->
+  <section class="card side" id="left">
+    <div class="toprow"><h2>🎯 Leads to call</h2><span class="sub" id="prosCount"></span></div>
+    <div class="find">
+      <input id="findQ" placeholder="e.g. barbers in McAllen TX" autocomplete="off">
+      <button class="btn primary" id="findBtn">Find</button>
+    </div>
+    <div class="note" id="findNote">Finds local businesses with no website (or only Facebook).</div>
+    <div class="filters" id="filters"></div>
+    <div class="scroll" id="prosList"><div class="sub">Loading…</div></div>
+  </section>
+
+  <!-- CENTER: dialer -->
+  <section id="center">
+    <div class="card" id="phone">
+      <div class="toprow">
+        <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
+        <button class="btn ghost small" id="leadsBtn">📝 Call notes</button>
+      </div>
+
+      <div class="live" id="live">
+        <div class="sub" id="liveLabel">On call with</div>
+        <div class="who" id="liveWho"></div>
+        <div class="timer" id="timer">00:00</div>
+        <div class="sub" id="quality" style="margin-top:4px"></div>
+      </div>
+
+      <input id="number" placeholder="+1 555 555 0123" inputmode="tel" autocomplete="off">
+      <input id="biz" placeholder="Business name (optional — helps the AI notes)" autocomplete="off">
+
+      <div class="pad" id="pad"></div>
+
+      <div class="row" id="idleBtns">
+        <button class="btn call" id="callBtn" disabled>📞 Call</button>
+        <button class="btn ghost back" id="backBtn" title="Delete">⌫</button>
+      </div>
+      <div class="row hidden" id="callBtns">
+        <button class="btn ghost" id="muteBtn">🎙️ Mute</button>
+        <button class="btn hang" id="hangBtn">Hang up</button>
+      </div>
+
+      <div class="log" id="log"></div>
+    </div>
+
+    <!-- Call notes history -->
+    <div class="card hidden" id="leadsCard">
+      <div class="toprow">
+        <h2>📝 Call notes</h2>
+        <div class="row" style="flex:0 0 auto;gap:6px">
+          <button class="btn ghost small" id="csvBtn">⬇ CSV</button>
+          <button class="btn primary small" id="backToPhone">← Phone</button>
+        </div>
+      </div>
+      <div id="leadsList" class="sub">Loading…</div>
+    </div>
+  </section>
+
+  <!-- RIGHT: live transcript + AI notes -->
+  <section class="card side" id="right">
+    <div class="toprow"><h2>🎧 Live transcript</h2><span class="sub" id="txState">Waiting for a call</span></div>
+    <div class="scroll">
+      <div class="tx" id="tx"><div class="empty">When you're on a call, what you and the business say shows up here live.</div></div>
+      <div class="notes hidden" id="notes"></div>
+    </div>
+  </section>
+</div>
+<footer>Powered by Twilio Voice · Eddieco</footer>
 
 <!-- Incoming call -->
 <div class="overlay hidden" id="incoming">
@@ -164,7 +216,9 @@
         onerror="var s=document.createElement('script');s.src='https://unpkg.com/@twilio/voice-sdk@2/dist/twilio.min.js';document.head.appendChild(s)"></script>
 <script>
 const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let device = null, activeCall = null, pendingCall = null, timerInt = null, password = '';
+let selectedProspect = null;   // the lead (from the left list) currently loaded into the dialer
 
 // ---------- UI helpers ----------
 function log(msg){
@@ -199,32 +253,36 @@ const keys = [['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO
 keys.forEach(([k, sub]) => {
   const b = document.createElement('button'); b.className = 'key'; b.innerHTML = `${k}<small>${sub}</small>`;
   b.onclick = () => pressKey(k);
-  if (k === '0') { let t; b.onmousedown = () => t = setTimeout(() => { pressKey('+', true); t = 'done'; }, 600);
+  if (k === '0') { let t; b.onmousedown = () => t = setTimeout(() => { pressKey('+'); t = 'done'; }, 600);
     b.onclick = () => { if (t !== 'done') { clearTimeout(t); pressKey('0'); } t = null; }; }
   $('pad').appendChild(b);
 });
 function pressKey(k){
   if (activeCall) { activeCall.sendDigits(k); log(`Sent tone ${k}`); }
-  else { $('number').value += k; refreshCallBtn(); }
+  else { $('number').value += k; selectedProspect = null; refreshCallBtn(); }
 }
-$('backBtn').onclick = () => { $('number').value = $('number').value.slice(0,-1); refreshCallBtn(); };
-$('number').addEventListener('input', refreshCallBtn);
+$('backBtn').onclick = () => { $('number').value = $('number').value.slice(0,-1); selectedProspect = null; refreshCallBtn(); };
+$('number').addEventListener('input', () => { selectedProspect = null; renderProspects(); refreshCallBtn(); });
 $('number').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('callBtn').disabled) makeCall(); });
 
-// ---------- Token + Device ----------
-// Server address (your Twilio Functions URL) is remembered in this browser
+// ---------- Server ----------
 let serverUrl = '';
 try { $('server').value = localStorage.getItem('eddieco-server') || ''; } catch(e){}
 
 async function fetchToken(){
   let r;
-  try {
-    // Form-encoded keeps this a "simple" request, so no CORS preflight is needed
-    r = await fetch(serverUrl + '/token', { method:'POST', body: new URLSearchParams({ password }) });
-  } catch (e) { throw new Error('Can\'t reach the server — check the address'); }
+  try { r = await fetch(serverUrl + '/token', { method:'POST', body: new URLSearchParams({ password }) }); }
+  catch (e) { throw new Error('Can\'t reach the server — check the address'); }
   if (r.status === 401) throw new Error('Wrong password');
   if (!r.ok) throw new Error('Server error (' + r.status + ')');
   return r.json();
+}
+async function api(action, extra = {}){
+  const r = await fetch(serverUrl + '/assistant', { method:'POST', body: new URLSearchParams({ password, action, ...extra }) });
+  if (r.status === 404) throw new Error('The /assistant function isn\'t deployed yet');
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error || ('Server error ' + r.status)); e.retry = !!j.retry || r.status === 504; throw e; }
+  return j;
 }
 
 async function goOnline(){
@@ -238,28 +296,27 @@ async function goOnline(){
   try {
     const { token, identity, callerId } = await fetchToken();
     $('callerIdLabel').textContent = callerId ? `Calling from ${callerId}` : 'Browser softphone';
-    $('login').classList.add('hidden'); $('phone').classList.remove('hidden');
+    $('loginWrap').classList.add('hidden'); $('app').classList.remove('hidden');
 
     device = new Twilio.Device(token, {
-      codecPreferences: ['opus', 'pcmu'],   // Opus = HD audio on the internet leg
-      edge: ['ashburn', 'umatilla', 'roaming'], // nearest US Twilio data centers, with fallback
-      maxAverageBitrate: 40000,              // top Opus quality
+      codecPreferences: ['opus', 'pcmu'],
+      edge: ['ashburn', 'umatilla', 'roaming'],
+      maxAverageBitrate: 40000,
       enableImprovedSignalingErrorPrecision: true,
       closeProtection: true, logLevel: 1,
     });
-
-    device.on('registered', () => { setStatus('Online — ready for calls', 'ok'); log(`Registered as <b>${identity}</b>`); refreshCallBtn(); });
+    device.on('registered', () => { setStatus('Online — ready for calls', 'ok'); log(`Registered as <b>${esc(identity)}</b>`); refreshCallBtn(); });
     device.on('unregistered', () => setStatus('Offline', 'err'));
-    device.on('error', (err) => { log(`Error: ${err.message}`); if (!activeCall) setStatus('Error — see log', 'err'); });
+    device.on('error', (err) => { log(`Error: ${esc(err.message)}`); if (!activeCall) setStatus('Error — see log', 'err'); });
     device.on('tokenWillExpire', async () => {
       try { const t = await fetchToken(); device.updateToken(t.token); log('Session refreshed'); } catch(e){ log('Could not refresh session'); }
     });
     device.on('incoming', handleIncoming);
-
     await device.register();
+    loadProspects();
   } catch (e) {
     $('loginErr').textContent = e.message;
-    $('login').classList.remove('hidden'); $('phone').classList.add('hidden');
+    $('loginWrap').classList.remove('hidden'); $('app').classList.add('hidden');
   } finally {
     $('loginBtn').disabled = false; $('loginBtn').textContent = 'Go online';
   }
@@ -271,54 +328,57 @@ $('password').addEventListener('keydown', e => { if (e.key === 'Enter') goOnline
 async function makeCall(){
   let to = $('number').value.trim().replace(/[^\d+*#]/g, '');
   if (!to) return;
-  if (/^\d{10}$/.test(to)) to = '+1' + to;          // US 10-digit convenience
+  if (/^\d{10}$/.test(to)) to = '+1' + to;
   try {
-    setStatus(`Calling ${to}…`, 'busy'); log(`Dialing ${to}`);
+    setStatus(`Calling ${to}…`, 'busy'); log(`Dialing ${esc(to)}`);
     activeCall = await device.connect({ params: { To: to } });
-    showLive(to, 'Ringing…');
+    showLive($('biz').value.trim() || to, 'Ringing…');
     wireCall(activeCall, to, 'out');
-  } catch (e) { log(`Call failed: ${e.message}`); resetUI(); }
+  } catch (e) { log(`Call failed: ${esc(e.message)}`); resetUI(); }
 }
 $('callBtn').onclick = makeCall;
 
 // ---------- Inbound ----------
 function handleIncoming(call){
-  if (activeCall) { call.reject(); log(`Busy — rejected call from ${call.parameters.From}`); return; }
+  if (activeCall) { call.reject(); log(`Busy — rejected call from ${esc(call.parameters.From)}`); return; }
   pendingCall = call;
   const from = call.parameters.From || 'Unknown';
-  $('incomingFrom').textContent = from;
+  const known = prospects.find(p => digits(p.phone) && digits(p.phone) === digits(from));
+  $('incomingFrom').textContent = known ? `${known.name}\n${from}` : from;
   $('incoming').classList.remove('hidden');
-  setStatus(`Incoming call from ${from}`, 'busy'); log(`Incoming call from ${from}`);
+  setStatus(`Incoming call from ${from}`, 'busy'); log(`Incoming call from ${esc(from)}`);
   const close = () => { $('incoming').classList.add('hidden'); pendingCall = null; };
-  call.on('cancel', () => { close(); log(`Missed call from ${from}`); resetUI(); });
+  call.on('cancel', () => { close(); log(`Missed call from ${esc(from)}`); resetUI(); });
   call.on('disconnect', close);
 }
 $('acceptBtn').onclick = () => {
   if (!pendingCall) return;
   const call = pendingCall, from = call.parameters.From || 'Unknown';
   $('incoming').classList.add('hidden'); pendingCall = null;
+  const known = prospects.find(p => digits(p.phone) && digits(p.phone) === digits(from));
+  if (known) { selectedProspect = known; $('biz').value = known.name; }
   call.accept(); activeCall = call;
-  showLive(from, 'On call with'); wireCall(call, from, 'in');
+  showLive(known ? known.name : from, 'On call with'); wireCall(call, from, 'in');
 };
 $('rejectBtn').onclick = () => {
   if (!pendingCall) return;
-  log(`Declined call from ${pendingCall.parameters.From}`);
+  log(`Declined call from ${esc(pendingCall.parameters.From)}`);
   pendingCall.reject(); $('incoming').classList.add('hidden'); pendingCall = null; resetUI();
 };
 
 // ---------- Shared call wiring ----------
 function wireCall(call, who, dir){
-  call.on('accept', () => assistantStart(call, who, dir));
-  call.on('disconnect', () => assistantStop());
-  call.on('accept', () => { $('liveLabel').textContent = 'On call with'; setStatus('On a call', 'busy'); log(`Connected with ${who}`); startTimer(); });
-  call.on('disconnect', () => { log(`Call with ${who} ended`); resetUI(); });
+  let answered = false;
+  call.on('accept', () => {
+    answered = true;
+    $('liveLabel').textContent = 'On call with'; setStatus('On a call', 'busy'); log(`Connected with ${esc(who)}`); startTimer();
+    assistantStart(call, who, dir);
+  });
+  call.on('disconnect', () => { log(`Call with ${esc(who)} ended`); resetUI(); assistantStop(); });
   call.on('cancel', () => { log('Call canceled'); resetUI(); });
   call.on('reject', () => { log('Call rejected'); resetUI(); });
-  call.on('error', (e) => log(`Call error: ${e.message}`));
-  // Ignore the harmless "no audio yet" warnings while the other phone is still ringing
-  let answered = false; call.on('accept', () => answered = true);
-  call.on('warning', (name) => { if (answered || !/bytes/.test(name)) log(`Call quality warning: ${name}`); });
-  // Live quality meter (MOS 1-5)
+  call.on('error', (e) => log(`Call error: ${esc(e.message)}`));
+  call.on('warning', (name) => { if (answered || !/bytes/.test(name)) log(`Call quality warning: ${esc(name)}`); });
   call.on('sample', (s) => {
     if (!answered || !s.mos) return;
     const m = s.mos, label = m >= 4 ? '🟢 Excellent' : m >= 3.5 ? '🟡 Good' : m >= 3 ? '🟠 Fair' : '🔴 Poor';
@@ -332,67 +392,173 @@ $('muteBtn').onclick = () => {
   $('muteBtn').classList.toggle('on', m); $('muteBtn').textContent = m ? '🔇 Muted' : '🎙️ Mute';
 };
 
-// ---------- AI call assistant ----------
-const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let tx = { sid: null, who: '', dir: '', biz: '', poll: null, count: 0 };
+// =====================================================================
+// LEFT: leads to call
+// =====================================================================
+const digits = (s) => String(s || '').replace(/\D/g, '').slice(-10);
+let prospects = [], prosFilter = 'new';
+const FILTERS = [['new','New'],['follow','Follow up'],['meeting','Meetings'],['done','Not interested'],['all','All']];
 
-async function api(action, extra = {}){
-  const r = await fetch(serverUrl + '/assistant', { method:'POST', body: new URLSearchParams({ password, action, ...extra }) });
-  if (r.status === 404) throw new Error('The /assistant function isn\'t deployed yet');
-  const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(j.error || ('Server error ' + r.status));
-  return j;
+function statusBucket(p){
+  const s = (p.status || 'new').toLowerCase();
+  if (s === 'new') return 'new';
+  if (s === 'meeting') return 'meeting';
+  if (s === 'not interested') return 'done';
+  return 'follow';
 }
+function statusBadge(s){
+  const v = (s || 'new').toLowerCase();
+  const c = { hot:'b-hot', meeting:'b-meeting', warm:'b-warm', cold:'b-cold', new:'b-new' }[v] || 'b-other';
+  return `<span class="badge ${c}">${esc(v === 'meeting' ? '📅 meeting' : v)}</span>`;
+}
+
+function renderFilters(){
+  $('filters').innerHTML = FILTERS.map(([k, label]) => {
+    const n = k === 'all' ? prospects.length : prospects.filter(p => statusBucket(p) === k).length;
+    return `<button class="chip ${prosFilter === k ? 'on' : ''}" data-f="${k}">${label} ${n}</button>`;
+  }).join('');
+  $('filters').querySelectorAll('.chip').forEach(b => b.onclick = () => { prosFilter = b.dataset.f; renderProspects(); });
+}
+
+function renderProspects(){
+  renderFilters();
+  $('prosCount').textContent = prospects.length ? `${prospects.length} total` : '';
+  const list = prospects.filter(p => prosFilter === 'all' || statusBucket(p) === prosFilter);
+  if (!prospects.length) { $('prosList').innerHTML = '<div class="sub">No leads yet. Search above — try "nail salons in Pharr TX" or "lawn care Mission TX".</div>'; return; }
+  if (!list.length) { $('prosList').innerHTML = '<div class="sub">Nothing here.</div>'; return; }
+  $('prosList').innerHTML = list.map(p => `
+    <div class="pros ${selectedProspect && selectedProspect.id === p.id ? 'sel' : ''}" data-id="${p.id}">
+      <div class="nm"><span>${esc(p.name)}</span>${statusBadge(p.status)}</div>
+      <div class="meta">${esc([p.category, p.website === 'facebook' ? 'Facebook only' : 'No website', p.rating ? `★ ${p.rating} (${p.reviews || 0})` : ''].filter(Boolean).join(' · '))}</div>
+      <div class="meta">${esc(p.address || '')}</div>
+      <div class="ph">${esc(p.phone || 'no phone listed')}${p.owner ? ` <span style="color:var(--muted);font-family:Inter">· owner: ${esc(p.owner)}</span>` : ''}</div>
+      ${p.lastNote ? `<div class="last">💬 ${esc(p.lastNote)}</div>` : ''}
+      <div class="acts">
+        <button data-a="call">📞 Call</button>
+        <button data-a="ni">Not interested</button>
+        <button data-a="del">Remove</button>
+      </div>
+    </div>`).join('');
+  $('prosList').querySelectorAll('.pros').forEach(el => {
+    const p = prospects.find(x => String(x.id) === el.dataset.id);
+    el.onclick = (e) => {
+      const a = e.target.dataset && e.target.dataset.a;
+      if (a === 'del') { e.stopPropagation(); return removeProspect(p); }
+      if (a === 'ni') { e.stopPropagation(); return updateProspect(p, { status: 'not interested' }); }
+      selectProspect(p);
+      if (a === 'call' && !activeCall && device) makeCall();
+    };
+  });
+}
+
+function selectProspect(p){
+  if (activeCall) return;
+  selectedProspect = p;
+  $('number').value = p.phone || '';
+  $('biz').value = p.name || '';
+  renderProspects(); refreshCallBtn();
+}
+
+async function loadProspects(){
+  try { const { prospects: list } = await api('prospects'); prospects = list; renderProspects(); }
+  catch (e) { $('prosList').innerHTML = `<div class="sub">⚠️ ${esc(e.message)}</div>`; }
+}
+
+async function findLeads(){
+  const q = $('findQ').value.trim();
+  if (!q) { $('findQ').focus(); return; }
+  $('findBtn').disabled = true; $('findNote').textContent = '🔎 Searching…';
+  try {
+    const r = await api('find', { q });
+    prospects = r.prospects;
+    prosFilter = 'new'; renderProspects();
+    $('findNote').textContent = `Added ${r.added} new lead${r.added === 1 ? '' : 's'} with no website` +
+      (r.skipped ? ` · skipped ${r.skipped} that have a site or are already listed` : '') + ` · source: ${r.source}`;
+  } catch (e) { $('findNote').textContent = '⚠️ ' + e.message; }
+  finally { $('findBtn').disabled = false; }
+}
+$('findBtn').onclick = findLeads;
+$('findQ').addEventListener('keydown', e => { if (e.key === 'Enter') findLeads(); });
+
+async function updateProspect(p, fields){
+  try { await api('prospectUpdate', { id: p.id, fields: JSON.stringify(fields) }); Object.assign(p, fields); renderProspects(); }
+  catch (e) { alert(e.message); }
+}
+async function removeProspect(p){
+  if (!confirm(`Remove ${p.name} from your list?`)) return;
+  try { await api('prospectDelete', { id: p.id }); prospects = prospects.filter(x => x.id !== p.id);
+        if (selectedProspect && selectedProspect.id === p.id) selectedProspect = null; renderProspects(); }
+  catch (e) { alert(e.message); }
+}
+
+// =====================================================================
+// RIGHT: live transcript + AI notes
+// =====================================================================
+let tx = { sid: null, who: '', dir: '', biz: '', prospectId: '', poll: null };
 
 function renderLines(lines){
-  if (!lines.length) { $('tx').innerHTML = '<div class="empty">🎧 Listening… the transcript appears here as you talk.</div>'; return; }
-  const atBottom = $('tx').scrollTop + $('tx').clientHeight >= $('tx').scrollHeight - 30;
+  if (!lines.length) { $('tx').innerHTML = '<div class="empty">🎧 Listening… words appear here a second or two after they\'re spoken.</div>'; return; }
+  const box = $('tx').parentElement;
+  const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
   $('tx').innerHTML = lines.map(l => `<div class="ln"><b class="${l.who === 'You' ? 'you' : 'them'}">${esc(l.who)}:</b> ${esc(l.text)}</div>`).join('');
-  if (atBottom) $('tx').scrollTop = $('tx').scrollHeight;
+  if (atBottom) box.scrollTop = box.scrollHeight;
 }
-
 async function pollTranscript(){
-  if (!tx.sid) return [];
-  try { const { lines } = await api('live', { callSid: tx.sid }); tx.count = lines.length; renderLines(lines); return lines; }
-  catch (e) { $('tx').innerHTML = `<div class="empty">Transcript unavailable: ${esc(e.message)}</div>`; clearInterval(tx.poll); return []; }
+  if (!tx.sid) return;
+  try { const { lines } = await api('live', { callSid: tx.sid }); renderLines(lines); }
+  catch (e) { $('tx').innerHTML = `<div class="empty">Transcript unavailable: ${esc(e.message)}</div>`; clearInterval(tx.poll); }
 }
 
 function assistantStart(call, who, dir){
   const sid = dir === 'in'
     ? (call.customParameters && call.customParameters.get('parentSid'))
     : (call.parameters && call.parameters.CallSid);
-  tx = { sid, who, dir, biz: $('biz').value.trim(), poll: null, count: 0 };
-  $('notes').classList.remove('show');
-  if (!sid) return;
-  $('tx').classList.add('show'); renderLines([]);
-  tx.poll = setInterval(pollTranscript, 3000);
+  tx = { sid, who, dir, biz: $('biz').value.trim(), prospectId: selectedProspect ? String(selectedProspect.id) : '', poll: null };
+  $('notes').classList.add('hidden');
+  $('txState').textContent = '🔴 Live';
+  if (!sid) { $('tx').innerHTML = '<div class="empty">Transcript not available for this call.</div>'; return; }
+  renderLines([]);
+  tx.poll = setInterval(pollTranscript, 2000);
 }
 
 async function assistantStop(){
   clearInterval(tx.poll);
   const t = { ...tx }; tx.sid = null;
+  $('txState').textContent = 'Call ended';
   if (!t.sid) return;
-  $('notes').classList.add('show');
+  $('notes').classList.remove('hidden');
   $('notes').innerHTML = '🤖 Writing call notes…';
-  await new Promise(r => setTimeout(r, 2500));     // let the last sentences arrive
+  await new Promise(r => setTimeout(r, 2500));
   tx.sid = t.sid; await pollTranscript(); tx.sid = null;
   try {
-    const res = await api('summarize', { callSid: t.sid, phone: t.who, business: t.biz, direction: t.dir });
+    let res, tries = 0;
+    while (true) {
+      try { res = await api('summarize', { callSid: t.sid, phone: t.who, business: t.biz, direction: t.dir, prospectId: t.prospectId }); break; }
+      catch (e) {
+        if (!e.retry || ++tries >= 3) throw e;
+        $('notes').innerHTML = `🤖 Writing call notes… (AI was slow, trying again ${tries + 1}/3)`;
+      }
+    }
     if (!res.lead) { $('notes').innerHTML = esc(res.note || 'No notes for this call.'); return; }
-    $('notes').innerHTML = '<h3>🤖 Call notes — saved to Leads</h3>' + leadHtml(res.lead, false);
-    log('AI notes saved to Leads');
-    $('biz').value = '';
+    $('notes').innerHTML = '<h3>🤖 Call notes — saved</h3>' + leadHtml(res.lead, false);
+    log('AI notes saved');
+
+    // Update the matching lead on the left with the outcome
+    const L = res.lead;
+    const p = prospects.find(x => String(x.id) === t.prospectId) || prospects.find(x => digits(x.phone) && digits(x.phone) === digits(t.who));
+    if (p) {
+      const interest = String(L.interest || '').toLowerCase();
+      const status = L.meeting_requested ? 'meeting' : (['hot','warm','cold','not interested','no answer'].includes(interest) ? interest : 'called');
+      const note = L.meeting_requested && L.meeting_time ? `Meeting: ${L.meeting_time}` : (L.follow_up || L.summary || '');
+      await updateProspect(p, { status, lastNote: note, lastCalled: new Date().toISOString(), owner: L.owner_name || p.owner || '' });
+    }
+    $('biz').value = ''; $('number').value = ''; selectedProspect = null; refreshCallBtn(); renderProspects();
   } catch (e) {
     $('notes').innerHTML = `⚠️ Couldn't write notes: ${esc(e.message)} <button class="btn ghost small" id="retryNotes" style="margin-left:6px">Retry</button>`;
     $('retryNotes').onclick = () => { tx = t; assistantStop(); };
   }
 }
 
-function badge(i){
-  const v = (i || '').toLowerCase();
-  const c = v === 'hot' ? 'b-hot' : v === 'warm' ? 'b-warm' : v === 'cold' ? 'b-cold' : 'b-other';
-  return i ? `<span class="badge ${c}">${esc(i)}</span>` : '';
-}
 function leadHtml(l, withDel){
   const rows = [
     ['Business', l.business_name], ['Phone', l.phone], ['Spoke with', l.contact_name], ['Owner', l.owner_name],
@@ -400,22 +566,23 @@ function leadHtml(l, withDel){
     ['Meeting', l.meeting_requested ? (l.meeting_time || 'Yes — time not set') : ''],
     ['Follow up', l.follow_up], ['Concerns', l.objections], ['Best contact', l.best_contact],
   ].filter(([, v]) => v && v !== 'unknown');
-  return `${esc(l.summary || '')} ${badge(l.interest)}
+  return `${esc(l.summary || '')} ${l.interest ? statusBadge(l.interest) : ''}
     <div class="kv">${rows.map(([k, v]) => `<span>${k}</span><span>${esc(v)}</span>`).join('')}</div>
     ${withDel ? `<button class="del" data-id="${l.id}">🗑 Delete</button>` : ''}`;
 }
 
+// ---------- Call notes history ----------
 let leadsCache = [];
 async function showLeads(){
   $('phone').classList.add('hidden'); $('leadsCard').classList.remove('hidden');
   $('leadsList').textContent = 'Loading…';
   try {
     const { leads } = await api('leads'); leadsCache = leads;
-    if (!leads.length) { $('leadsList').textContent = 'No leads yet — they show up here after each call.'; return; }
+    if (!leads.length) { $('leadsList').textContent = 'No call notes yet — they show up here after each call.'; return; }
     $('leadsList').innerHTML = leads.map(l => `<div class="lead"><span class="when">${new Date(l.date).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span>
       <h3>${esc(l.business_name || l.phone || 'Unknown')}</h3>${leadHtml(l, true)}</div>`).join('');
     $('leadsList').querySelectorAll('.del').forEach(b => b.onclick = async () => {
-      if (!confirm('Delete this lead?')) return;
+      if (!confirm('Delete these notes?')) return;
       try { await api('delete', { id: b.dataset.id }); showLeads(); } catch (e) { alert(e.message); }
     });
   } catch (e) { $('leadsList').textContent = '⚠️ ' + e.message; }
@@ -429,7 +596,7 @@ $('csvBtn').onclick = () => {
   const csv = [cols.join(','), ...leadsCache.map(l => cols.map(c => q(l[c])).join(','))].join('\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = `eddieco-leads-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+  a.download = `eddieco-call-notes-${new Date().toISOString().slice(0,10)}.csv`; a.click();
 };
 </script>
 </body>
