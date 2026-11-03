@@ -94,6 +94,11 @@
   .tx{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;min-height:180px}
   .tx .ln{margin:4px 0}.tx .you{color:#79c0ff}.tx .them{color:#ffa657}
   .tx .empty{color:var(--muted);font-size:13px}
+  .coach{background:linear-gradient(135deg,#1d2b1f,#16251a);border:1px solid #2ea04366;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px}
+  .coach .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--green-h);text-transform:uppercase;display:flex;justify-content:space-between}
+  .coach .say{font-size:16px;line-height:1.45;margin-top:6px;color:#fff}
+  .coach .tip{font-size:12px;color:#a6d8b0;margin-top:6px}
+  .coach.thinking .lbl span:last-child::after{content:' …thinking';color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0}
   .notes{margin-top:12px;border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:13px;background:#13233d}
   .notes h3,.lead h3{margin:0 0 6px;font-size:14px}
   .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:6px}
@@ -191,6 +196,8 @@
   <!-- RIGHT: live transcript + AI notes -->
   <section class="card side" id="right">
     <div class="toprow"><h2>🎧 Live transcript</h2><span class="sub" id="txState">Waiting for a call</span></div>
+    <div class="coach hidden" id="coach"><div class="lbl"><span>🧠 Coach — say this</span><span></span></div>
+      <div class="say" id="coachSay"></div><div class="tip" id="coachTip"></div></div>
     <div class="scroll">
       <div class="tx" id="tx"><div class="empty">When you're on a call, what you and the business say shows up here live.</div></div>
       <div class="notes hidden" id="notes"></div>
@@ -505,7 +512,7 @@ function renderLines(lines){
 }
 async function pollTranscript(){
   if (!tx.sid) return;
-  try { const { lines } = await api('live', { callSid: tx.sid }); renderLines(lines); }
+  try { const { lines } = await api('live', { callSid: tx.sid }); renderLines(lines); tx.lines = lines; maybeCoach(lines); }
   catch (e) { $('tx').innerHTML = `<div class="empty">Transcript unavailable: ${esc(e.message)}</div>`; clearInterval(tx.poll); }
 }
 
@@ -516,6 +523,10 @@ function assistantStart(call, who, dir){
   tx = { sid, who, dir, biz: $('biz').value.trim(), prospectId: selectedProspect ? String(selectedProspect.id) : '', poll: null };
   $('notes').classList.add('hidden');
   $('txState').textContent = '🔴 Live';
+  coach = { busy: false, lastCount: 0, timer: null };
+  $('coach').classList.remove('hidden', 'thinking');
+  $('coachSay').textContent = 'Listening… tips show up once they start talking.'; $('coachTip').textContent = '';
+  getAI().catch(() => {});
   if (!sid) { $('tx').innerHTML = '<div class="empty">Transcript not available for this call.</div>'; return; }
   renderLines([]);
   tx.poll = setInterval(pollTranscript, 2000);
@@ -531,12 +542,28 @@ async function assistantStop(){
   await new Promise(r => setTimeout(r, 2500));
   tx.sid = t.sid; await pollTranscript(); tx.sid = null;
   try {
-    let res, tries = 0;
-    while (true) {
-      try { res = await api('summarize', { callSid: t.sid, phone: t.who, business: t.biz, direction: t.dir, prospectId: t.prospectId }); break; }
-      catch (e) {
-        if (!e.retry || ++tries >= 3) throw e;
-        $('notes').innerHTML = `🤖 Writing call notes… (AI was slow, trying again ${tries + 1}/3)`;
+    clearTimeout(coach.timer); $('coach').classList.remove('thinking');
+    let res = null;
+    const lines = tx.lines || [];
+    // 1) Browser → Surplus directly (no time limit)
+    try {
+      if (!lines.length) { res = { lead: null, note: 'No transcript for this call (too short, or nobody talked).' }; }
+      else {
+        const raw = await surplus(notesPrompt(lines, t), 'notes');
+        let lead;
+        try { lead = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (e) { lead = { summary: raw.trim() || 'AI gave no answer' }; }
+        res = await api('saveLead', { callSid: t.sid, phone: t.who, direction: t.dir, prospectId: t.prospectId, lead: JSON.stringify(lead) });
+      }
+    } catch (e) {
+      if (!e.fallback) throw e;
+      // 2) Fallback: server-side (10-second limit, retries)
+      let tries = 0;
+      while (true) {
+        try { res = await api('summarize', { callSid: t.sid, phone: t.who, business: t.biz, direction: t.dir, prospectId: t.prospectId }); break; }
+        catch (e2) {
+          if (!e2.retry || ++tries >= 3) throw e2;
+          $('notes').innerHTML = `🤖 Writing call notes… (AI was slow, trying again ${tries + 1}/3)`;
+        }
       }
     }
     if (!res.lead) { $('notes').innerHTML = esc(res.note || 'No notes for this call.'); return; }
@@ -557,6 +584,73 @@ async function assistantStop(){
     $('notes').innerHTML = `⚠️ Couldn't write notes: ${esc(e.message)} <button class="btn ghost small" id="retryNotes" style="margin-left:6px">Retry</button>`;
     $('retryNotes').onclick = () => { tx = t; assistantStop(); };
   }
+}
+
+// ---------- Surplus AI, called from the browser ----------
+let aiCfg = null, directOK = true, coach = { busy: false, lastCount: 0, timer: null };
+async function getAI(){ if (!aiCfg) aiCfg = await api('aiConfig'); return aiCfg; }
+
+async function surplus(messages, kind){
+  if (!directOK) { const e = new Error('direct off'); e.fallback = true; throw e; }
+  const cfg = await getAI();
+  const body = { model: kind === 'coach' ? cfg.coachModel : cfg.model, messages,
+                 max_tokens: kind === 'coach' ? 160 : 500, temperature: kind === 'coach' ? 0.4 : 0.1 };
+  if (cfg.provider) body.provider_order = cfg.provider.split(',').map(s => s.trim());
+  const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), kind === 'coach' ? 25000 : 90000);
+  let r;
+  try {
+    r = await fetch('https://api.surplusintelligence.ai/v1/chat/completions', {
+      method: 'POST', signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + cfg.key }, body: JSON.stringify(body) });
+  } catch (e) {
+    clearTimeout(to);
+    if (e.name === 'AbortError') throw new Error('AI took too long');
+    directOK = false; log('Browser can\'t reach Surplus directly — using the server instead');
+    const f = new Error('blocked'); f.fallback = true; throw f;
+  }
+  clearTimeout(to);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error('Surplus: ' + ((j.error && (j.error.message || j.error)) || r.status));
+  const m = j.choices && j.choices[0] && j.choices[0].message;
+  return (m && (m.content || '')) || '';
+}
+
+const convo = (lines) => lines.map(l => `${l.who}: ${l.text}`).join('\n');
+function notesPrompt(lines, t){
+  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' });
+  return [{ role: 'user', content:
+`Sales call notes for Eddieco (builds websites + SEO for local businesses in the Rio Grande Valley). "You"=Eddieco caller, "Them"=the business. The call may be in English, Spanish, or a mix — understand both, but write every note in English (keep names as spoken). Today is ${today}.
+${t.biz ? `Business: ${t.biz}. ` : ''}Phone: ${t.who || 'unknown'}.
+Reply with ONLY compact JSON, keys: business_name, contact_name, owner_name, is_decision_maker (yes/no/unknown), interest (hot/warm/cold/not interested/no answer), has_website (yes/no/unknown), meeting_requested (true/false), meeting_time (real date+time, or ""), follow_up, objections, best_contact, summary (max 2 sentences). If they said they'll call back, put that in follow_up. Use "" when unknown.
+
+${convo(lines).slice(-12000)}` }];
+}
+
+// Live coach: after the business speaks, suggest the next line
+function maybeCoach(lines){
+  if (!tx.sid || !lines.length || lines.length === coach.lastCount) return;
+  if (lines[lines.length - 1].who !== 'Them') return;
+  clearTimeout(coach.timer);
+  coach.timer = setTimeout(() => runCoach(lines), 1200);
+}
+async function runCoach(lines){
+  if (coach.busy || !tx.sid) return;
+  coach.busy = true; coach.lastCount = lines.length; $('coach').classList.add('thinking');
+  try {
+    const raw = await surplus([
+      { role: 'system', content:
+`You are a live cold-call coach for Eddieco, a small local agency that builds websites and does Google/SEO for small businesses in the Rio Grande Valley (McAllen, Mission, Pharr, Edinburg). The caller ("You") is talking to a business ("Them") right now.
+Goal of the call: get the owner/decision maker, find out how they get customers, and book a short meeting (or get a callback time).
+Give the caller the single best NEXT line to say: natural, friendly, short (max 2 sentences), in the SAME language the business is using (Spanish, English, or Spanglish like the Valley). If they raised an objection (busy, no money, already have Facebook, not interested, "call me later"), handle it briefly and steer toward a specific time. If they're busy, lock a specific callback day/time.
+Reply ONLY JSON: {"say":"...","tip":"3-8 word coaching tip in English"}` },
+      { role: 'user', content: convo(lines).slice(-4000) },
+    ], 'coach');
+    let c; try { c = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (e) { c = { say: raw.trim() }; }
+    if (tx.sid && c.say) { $('coachSay').textContent = c.say; $('coachTip').textContent = c.tip ? '💡 ' + c.tip : ''; }
+  } catch (e) {
+    if (e.fallback) $('coachSay').textContent = 'Coach needs the browser to reach Surplus directly — notes still work through the server.';
+    else $('coachTip').textContent = '⚠️ ' + e.message;
+  } finally { coach.busy = false; $('coach').classList.remove('thinking'); }
 }
 
 function leadHtml(l, withDel){

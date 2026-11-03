@@ -164,6 +164,23 @@ ${transcript}`;
         return send(200, { lead: { id: saved.index, ...lead } });
       }
 
+      // ----- browser-side AI (no 10-second limit) -----
+      case 'aiConfig':
+        if (!context.SURPLUS_KEY) return send(500, { error: 'SURPLUS_KEY is not set in Environment Variables' });
+        return send(200, {
+          key: context.SURPLUS_KEY,
+          model: context.SURPLUS_MODEL || 'deepseek-v4-pro-0813',
+          coachModel: context.COACH_MODEL || context.SURPLUS_MODEL || 'deepseek-v4-pro-0813',
+          provider: context.SURPLUS_PROVIDER || '',
+        });
+
+      case 'saveLead': {
+        let lead = {}; try { lead = JSON.parse(event.lead || '{}'); } catch (e) { return send(400, { error: 'Bad lead data' }); }
+        Object.assign(lead, { phone: event.phone || '', direction: event.direction || '', date: new Date().toISOString(), callSid, prospectId: event.prospectId || '' });
+        const saved = await append(sync, 'leads', lead);
+        return send(200, { lead: { id: saved.index, ...lead } });
+      }
+
       case 'leads': {
         const items = await listAll(sync, 'leads', 'desc');
         return send(200, { leads: items.map((i) => ({ id: i.index, ...i.data })) });
