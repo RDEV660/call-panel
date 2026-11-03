@@ -62,6 +62,25 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 #2ea04399}100%{box-shadow:0 0 0 22px #2ea04300}}
   .ring .from{font-family:'JetBrains Mono',monospace;font-size:20px;margin:6px 0 20px}
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:16px}
+  #biz{margin-top:10px;font-size:14px;padding:10px 14px}
+  .tx{display:none;margin-top:14px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;
+      max-height:220px;overflow:auto;font-size:13px;line-height:1.45}
+  .tx.show{display:block}
+  .tx .ln{margin:3px 0}.tx .you{color:#79c0ff}.tx .them{color:#ffa657}
+  .tx .empty{color:var(--muted)}
+  .notes{display:none;margin-top:14px;border:1px solid var(--accent);border-radius:12px;padding:12px 14px;font-size:13px;background:#13233d}
+  .notes.show{display:block}
+  .notes h3,.lead h3{margin:0 0 6px;font-size:14px}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;margin-top:6px}
+  .kv span:nth-child(odd){color:var(--muted)}
+  .badge{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11px;font-weight:600;margin-left:6px;vertical-align:middle}
+  .b-hot{background:#da3633}.b-warm{background:#d29922;color:#111}.b-cold{background:#30577e}.b-other{background:#3a414b}
+  .toprow{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .toprow .status{margin:0}
+  .small{padding:7px 12px;font-size:13px;flex:0 0 auto;border-radius:10px}
+  .lead{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:13px}
+  .lead .when{color:var(--muted);font-size:11px;float:right}
+  .lead .del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;margin-top:6px;padding:0}
 </style>
 </head>
 <body>
@@ -82,7 +101,10 @@
 
   <!-- Phone -->
   <div class="card hidden" id="phone">
-    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
+    <div class="toprow">
+      <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
+      <button class="btn ghost small" id="leadsBtn">📋 Leads</button>
+    </div>
 
     <div class="live" id="live">
       <div class="sub" id="liveLabel">On call with</div>
@@ -92,6 +114,7 @@
     </div>
 
     <input id="number" placeholder="+1 555 555 0123" inputmode="tel" autocomplete="off">
+    <input id="biz" placeholder="Business name (optional — helps the AI notes)" autocomplete="off">
 
     <div class="pad" id="pad"></div>
 
@@ -104,7 +127,22 @@
       <button class="btn hang" id="hangBtn">Hang up</button>
     </div>
 
+    <div class="tx" id="tx"></div>
+    <div class="notes" id="notes"></div>
+
     <div class="log" id="log"></div>
+  </div>
+
+  <!-- Leads -->
+  <div class="card hidden" id="leadsCard">
+    <div class="toprow">
+      <h1 style="font-size:17px">📋 Leads</h1>
+      <div class="row" style="flex:0 0 auto">
+        <button class="btn ghost small" id="csvBtn">⬇ CSV</button>
+        <button class="btn primary small" id="backToPhone">← Phone</button>
+      </div>
+    </div>
+    <div id="leadsList" class="sub">Loading…</div>
   </div>
   <footer>Powered by Twilio Voice · Eddieco</footer>
 </div>
@@ -238,7 +276,7 @@ async function makeCall(){
     setStatus(`Calling ${to}…`, 'busy'); log(`Dialing ${to}`);
     activeCall = await device.connect({ params: { To: to } });
     showLive(to, 'Ringing…');
-    wireCall(activeCall, to);
+    wireCall(activeCall, to, 'out');
   } catch (e) { log(`Call failed: ${e.message}`); resetUI(); }
 }
 $('callBtn').onclick = makeCall;
@@ -260,7 +298,7 @@ $('acceptBtn').onclick = () => {
   const call = pendingCall, from = call.parameters.From || 'Unknown';
   $('incoming').classList.add('hidden'); pendingCall = null;
   call.accept(); activeCall = call;
-  showLive(from, 'On call with'); wireCall(call, from);
+  showLive(from, 'On call with'); wireCall(call, from, 'in');
 };
 $('rejectBtn').onclick = () => {
   if (!pendingCall) return;
@@ -269,7 +307,9 @@ $('rejectBtn').onclick = () => {
 };
 
 // ---------- Shared call wiring ----------
-function wireCall(call, who){
+function wireCall(call, who, dir){
+  call.on('accept', () => assistantStart(call, who, dir));
+  call.on('disconnect', () => assistantStop());
   call.on('accept', () => { $('liveLabel').textContent = 'On call with'; setStatus('On a call', 'busy'); log(`Connected with ${who}`); startTimer(); });
   call.on('disconnect', () => { log(`Call with ${who} ended`); resetUI(); });
   call.on('cancel', () => { log('Call canceled'); resetUI(); });
@@ -290,6 +330,106 @@ $('muteBtn').onclick = () => {
   if (!activeCall) return;
   const m = !activeCall.isMuted(); activeCall.mute(m);
   $('muteBtn').classList.toggle('on', m); $('muteBtn').textContent = m ? '🔇 Muted' : '🎙️ Mute';
+};
+
+// ---------- AI call assistant ----------
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tx = { sid: null, who: '', dir: '', biz: '', poll: null, count: 0 };
+
+async function api(action, extra = {}){
+  const r = await fetch(serverUrl + '/assistant', { method:'POST', body: new URLSearchParams({ password, action, ...extra }) });
+  if (r.status === 404) throw new Error('The /assistant function isn\'t deployed yet');
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('Server error ' + r.status));
+  return j;
+}
+
+function renderLines(lines){
+  if (!lines.length) { $('tx').innerHTML = '<div class="empty">🎧 Listening… the transcript appears here as you talk.</div>'; return; }
+  const atBottom = $('tx').scrollTop + $('tx').clientHeight >= $('tx').scrollHeight - 30;
+  $('tx').innerHTML = lines.map(l => `<div class="ln"><b class="${l.who === 'You' ? 'you' : 'them'}">${esc(l.who)}:</b> ${esc(l.text)}</div>`).join('');
+  if (atBottom) $('tx').scrollTop = $('tx').scrollHeight;
+}
+
+async function pollTranscript(){
+  if (!tx.sid) return [];
+  try { const { lines } = await api('live', { callSid: tx.sid }); tx.count = lines.length; renderLines(lines); return lines; }
+  catch (e) { $('tx').innerHTML = `<div class="empty">Transcript unavailable: ${esc(e.message)}</div>`; clearInterval(tx.poll); return []; }
+}
+
+function assistantStart(call, who, dir){
+  const sid = dir === 'in'
+    ? (call.customParameters && call.customParameters.get('parentSid'))
+    : (call.parameters && call.parameters.CallSid);
+  tx = { sid, who, dir, biz: $('biz').value.trim(), poll: null, count: 0 };
+  $('notes').classList.remove('show');
+  if (!sid) return;
+  $('tx').classList.add('show'); renderLines([]);
+  tx.poll = setInterval(pollTranscript, 3000);
+}
+
+async function assistantStop(){
+  clearInterval(tx.poll);
+  const t = { ...tx }; tx.sid = null;
+  if (!t.sid) return;
+  $('notes').classList.add('show');
+  $('notes').innerHTML = '🤖 Writing call notes…';
+  await new Promise(r => setTimeout(r, 2500));     // let the last sentences arrive
+  tx.sid = t.sid; await pollTranscript(); tx.sid = null;
+  try {
+    const res = await api('summarize', { callSid: t.sid, phone: t.who, business: t.biz, direction: t.dir });
+    if (!res.lead) { $('notes').innerHTML = esc(res.note || 'No notes for this call.'); return; }
+    $('notes').innerHTML = '<h3>🤖 Call notes — saved to Leads</h3>' + leadHtml(res.lead, false);
+    log('AI notes saved to Leads');
+    $('biz').value = '';
+  } catch (e) {
+    $('notes').innerHTML = `⚠️ Couldn't write notes: ${esc(e.message)} <button class="btn ghost small" id="retryNotes" style="margin-left:6px">Retry</button>`;
+    $('retryNotes').onclick = () => { tx = t; assistantStop(); };
+  }
+}
+
+function badge(i){
+  const v = (i || '').toLowerCase();
+  const c = v === 'hot' ? 'b-hot' : v === 'warm' ? 'b-warm' : v === 'cold' ? 'b-cold' : 'b-other';
+  return i ? `<span class="badge ${c}">${esc(i)}</span>` : '';
+}
+function leadHtml(l, withDel){
+  const rows = [
+    ['Business', l.business_name], ['Phone', l.phone], ['Spoke with', l.contact_name], ['Owner', l.owner_name],
+    ['Decision maker', l.is_decision_maker], ['Has website', l.has_website],
+    ['Meeting', l.meeting_requested ? (l.meeting_time || 'Yes — time not set') : ''],
+    ['Follow up', l.follow_up], ['Concerns', l.objections], ['Best contact', l.best_contact],
+  ].filter(([, v]) => v && v !== 'unknown');
+  return `${esc(l.summary || '')} ${badge(l.interest)}
+    <div class="kv">${rows.map(([k, v]) => `<span>${k}</span><span>${esc(v)}</span>`).join('')}</div>
+    ${withDel ? `<button class="del" data-id="${l.id}">🗑 Delete</button>` : ''}`;
+}
+
+let leadsCache = [];
+async function showLeads(){
+  $('phone').classList.add('hidden'); $('leadsCard').classList.remove('hidden');
+  $('leadsList').textContent = 'Loading…';
+  try {
+    const { leads } = await api('leads'); leadsCache = leads;
+    if (!leads.length) { $('leadsList').textContent = 'No leads yet — they show up here after each call.'; return; }
+    $('leadsList').innerHTML = leads.map(l => `<div class="lead"><span class="when">${new Date(l.date).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</span>
+      <h3>${esc(l.business_name || l.phone || 'Unknown')}</h3>${leadHtml(l, true)}</div>`).join('');
+    $('leadsList').querySelectorAll('.del').forEach(b => b.onclick = async () => {
+      if (!confirm('Delete this lead?')) return;
+      try { await api('delete', { id: b.dataset.id }); showLeads(); } catch (e) { alert(e.message); }
+    });
+  } catch (e) { $('leadsList').textContent = '⚠️ ' + e.message; }
+}
+$('leadsBtn').onclick = showLeads;
+$('backToPhone').onclick = () => { $('leadsCard').classList.add('hidden'); $('phone').classList.remove('hidden'); };
+$('csvBtn').onclick = () => {
+  if (!leadsCache.length) return;
+  const cols = ['date','business_name','phone','contact_name','owner_name','is_decision_maker','interest','has_website','meeting_requested','meeting_time','follow_up','objections','best_contact','summary','direction'];
+  const q = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const csv = [cols.join(','), ...leadsCache.map(l => cols.map(c => q(l[c])).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = `eddieco-leads-${new Date().toISOString().slice(0,10)}.csv`; a.click();
 };
 </script>
 </body>
