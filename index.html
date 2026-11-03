@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eddieco Call Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1f2630; --line:#2a323d;
+    --text:#e6edf3; --muted:#8b96a5; --accent:#2f81f7;
+    --green:#2ea043; --green-h:#3fb950; --red:#da3633; --red-h:#f85149; --amber:#d29922;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 50% -10%,#1b2a44 0%,var(--bg) 60%);
+       color:var(--text);font-family:Inter,system-ui,sans-serif;display:flex;justify-content:center;padding:32px 16px}
+  .wrap{width:100%;max-width:420px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7c3aed);
+        display:grid;place-items:center;font-weight:700;font-size:20px}
+  h1{font-size:20px;margin:0}
+  .sub{color:var(--muted);font-size:13px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 10px 40px #0006}
+  .status{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:16px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+  .dot.ok{background:var(--green-h);box-shadow:0 0 8px var(--green-h)}
+  .dot.busy{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .dot.err{background:var(--red-h)}
+  input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:12px;
+        padding:14px 16px;font-size:16px;outline:none}
+  input:focus{border-color:var(--accent)}
+  #number{font-family:'JetBrains Mono',monospace;font-size:24px;text-align:center;letter-spacing:1px}
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+  .key{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:12px 0;
+       font-size:22px;font-weight:600;cursor:pointer;transition:.12s;user-select:none}
+  .key small{display:block;font-size:9px;letter-spacing:2px;color:var(--muted);font-weight:500;height:11px}
+  .key:hover{background:#28313d}.key:active{transform:scale(.96)}
+  .row{display:flex;gap:10px}
+  .btn{flex:1;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:600;color:#fff;cursor:pointer;transition:.12s}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  .call{background:var(--green)}.call:hover:not(:disabled){background:var(--green-h)}
+  .hang{background:var(--red)}.hang:hover:not(:disabled){background:var(--red-h)}
+  .ghost{background:var(--panel2);border:1px solid var(--line);color:var(--text)}
+  .ghost.on{background:var(--amber);color:#111;border-color:var(--amber)}
+  .primary{background:var(--accent)}
+  .back{flex:0 0 56px}
+  .live{display:none;text-align:center;margin-bottom:14px}
+  .live.show{display:block}
+  .live .who{font-family:'JetBrains Mono',monospace;font-size:20px}
+  .live .timer{color:var(--green-h);font-family:'JetBrains Mono',monospace;margin-top:4px}
+  .log{margin-top:18px;max-height:170px;overflow:auto;font-size:12px;color:var(--muted);
+       border-top:1px solid var(--line);padding-top:12px}
+  .log div{padding:3px 0}.log b{color:var(--text);font-weight:500}
+  #login .err{color:var(--red-h);font-size:13px;min-height:18px;margin-top:8px}
+  .hidden{display:none!important}
+  /* incoming call overlay */
+  .overlay{position:fixed;inset:0;background:#000a;display:grid;place-items:center;z-index:10;padding:16px}
+  .ring{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:28px;width:100%;max-width:340px;text-align:center}
+  .ring .pulse{width:72px;height:72px;margin:0 auto 14px;border-radius:50%;background:var(--green);display:grid;place-items:center;font-size:30px;
+               animation:pulse 1.2s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 #2ea04399}100%{box-shadow:0 0 0 22px #2ea04300}}
+  .ring .from{font-family:'JetBrains Mono',monospace;font-size:20px;margin:6px 0 20px}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">E</div>
+    <div><h1>Eddieco Call Panel</h1><div class="sub" id="callerIdLabel">Browser softphone</div></div>
+  </header>
+
+  <!-- Login -->
+  <div class="card" id="login">
+    <p style="margin-top:0;color:var(--muted);font-size:14px">Enter your server address and panel password to go online.</p>
+    <input id="server" type="url" placeholder="https://eddieco-panel-1234.twil.io" autocomplete="off" style="margin-bottom:10px">
+    <input id="password" type="password" placeholder="Panel password" autocomplete="current-password">
+    <div class="err" id="loginErr"></div>
+    <button class="btn primary" id="loginBtn" style="width:100%;margin-top:6px">Go online</button>
+  </div>
+
+  <!-- Phone -->
+  <div class="card hidden" id="phone">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Connecting…</span></div>
+
+    <div class="live" id="live">
+      <div class="sub" id="liveLabel">On call with</div>
+      <div class="who" id="liveWho"></div>
+      <div class="timer" id="timer">00:00</div>
+    </div>
+
+    <input id="number" placeholder="+1 555 555 0123" inputmode="tel" autocomplete="off">
+
+    <div class="pad" id="pad"></div>
+
+    <div class="row" id="idleBtns">
+      <button class="btn call" id="callBtn" disabled>📞 Call</button>
+      <button class="btn ghost back" id="backBtn" title="Delete">⌫</button>
+    </div>
+    <div class="row hidden" id="callBtns">
+      <button class="btn ghost" id="muteBtn">🎙️ Mute</button>
+      <button class="btn hang" id="hangBtn">Hang up</button>
+    </div>
+
+    <div class="log" id="log"></div>
+  </div>
+  <footer>Powered by Twilio Voice · Eddieco</footer>
+</div>
+
+<!-- Incoming call -->
+<div class="overlay hidden" id="incoming">
+  <div class="ring">
+    <div class="pulse">📞</div>
+    <div class="sub">Incoming call</div>
+    <div class="from" id="incomingFrom">Unknown</div>
+    <div class="row">
+      <button class="btn hang" id="rejectBtn">Decline</button>
+      <button class="btn call" id="acceptBtn">Answer</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"
+        onerror="var s=document.createElement('script');s.src='https://unpkg.com/@twilio/voice-sdk@2/dist/twilio.min.js';document.head.appendChild(s)"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+let device = null, activeCall = null, pendingCall = null, timerInt = null, password = '';
+
+// ---------- UI helpers ----------
+function log(msg){
+  const t = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d = document.createElement('div'); d.innerHTML = `<b>${t}</b> · ${msg}`;
+  $('log').prepend(d);
+}
+function setStatus(text, kind){ $('statusText').textContent = text; $('dot').className = 'dot ' + (kind||''); }
+function refreshCallBtn(){ $('callBtn').disabled = !device || !$('number').value.trim() || !!activeCall; }
+
+function startTimer(){
+  const start = Date.now();
+  timerInt = setInterval(() => {
+    const s = Math.floor((Date.now()-start)/1000);
+    $('timer').textContent = String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }, 1000);
+}
+function showLive(who, label){
+  $('liveWho').textContent = who; $('liveLabel').textContent = label; $('timer').textContent = '00:00';
+  $('live').classList.add('show'); $('idleBtns').classList.add('hidden'); $('callBtns').classList.remove('hidden');
+  $('muteBtn').classList.remove('on'); $('muteBtn').textContent = '🎙️ Mute';
+}
+function resetUI(){
+  clearInterval(timerInt); activeCall = null;
+  $('live').classList.remove('show'); $('idleBtns').classList.remove('hidden'); $('callBtns').classList.add('hidden');
+  if (device) setStatus('Online — ready for calls', 'ok');
+  refreshCallBtn();
+}
+
+// ---------- Keypad ----------
+const keys = [['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['*',''],['0','+'],['#','']];
+keys.forEach(([k, sub]) => {
+  const b = document.createElement('button'); b.className = 'key'; b.innerHTML = `${k}<small>${sub}</small>`;
+  b.onclick = () => pressKey(k);
+  if (k === '0') { let t; b.onmousedown = () => t = setTimeout(() => { pressKey('+', true); t = 'done'; }, 600);
+    b.onclick = () => { if (t !== 'done') { clearTimeout(t); pressKey('0'); } t = null; }; }
+  $('pad').appendChild(b);
+});
+function pressKey(k){
+  if (activeCall) { activeCall.sendDigits(k); log(`Sent tone ${k}`); }
+  else { $('number').value += k; refreshCallBtn(); }
+}
+$('backBtn').onclick = () => { $('number').value = $('number').value.slice(0,-1); refreshCallBtn(); };
+$('number').addEventListener('input', refreshCallBtn);
+$('number').addEventListener('keydown', e => { if (e.key === 'Enter' && !$('callBtn').disabled) makeCall(); });
+
+// ---------- Token + Device ----------
+// Server address (your Twilio Functions URL) is remembered in this browser
+let serverUrl = '';
+try { $('server').value = localStorage.getItem('eddieco-server') || ''; } catch(e){}
+
+async function fetchToken(){
+  let r;
+  try {
+    // Form-encoded keeps this a "simple" request, so no CORS preflight is needed
+    r = await fetch(serverUrl + '/token', { method:'POST', body: new URLSearchParams({ password }) });
+  } catch (e) { throw new Error('Can\'t reach the server — check the address'); }
+  if (r.status === 401) throw new Error('Wrong password');
+  if (!r.ok) throw new Error('Server error (' + r.status + ')');
+  return r.json();
+}
+
+async function goOnline(){
+  if (!window.Twilio || !Twilio.Device) { $('loginErr').textContent = 'Twilio SDK didn\'t load — check your internet and refresh'; return; }
+  serverUrl = $('server').value.trim().replace(/\/+$/, '');
+  if (serverUrl && !/^https?:\/\//.test(serverUrl)) serverUrl = 'https://' + serverUrl;
+  if (!serverUrl) { $('loginErr').textContent = 'Enter your server address'; return; }
+  try { localStorage.setItem('eddieco-server', serverUrl); } catch(e){}
+  password = $('password').value;
+  $('loginErr').textContent = ''; $('loginBtn').disabled = true; $('loginBtn').textContent = 'Connecting…';
+  try {
+    const { token, identity, callerId } = await fetchToken();
+    $('callerIdLabel').textContent = callerId ? `Calling from ${callerId}` : 'Browser softphone';
+    $('login').classList.add('hidden'); $('phone').classList.remove('hidden');
+
+    device = new Twilio.Device(token, { codecPreferences: ['opus', 'pcmu'], closeProtection: true, logLevel: 1 });
+
+    device.on('registered', () => { setStatus('Online — ready for calls', 'ok'); log(`Registered as <b>${identity}</b>`); refreshCallBtn(); });
+    device.on('unregistered', () => setStatus('Offline', 'err'));
+    device.on('error', (err) => { log(`Error: ${err.message}`); if (!activeCall) setStatus('Error — see log', 'err'); });
+    device.on('tokenWillExpire', async () => {
+      try { const t = await fetchToken(); device.updateToken(t.token); log('Session refreshed'); } catch(e){ log('Could not refresh session'); }
+    });
+    device.on('incoming', handleIncoming);
+
+    await device.register();
+  } catch (e) {
+    $('loginErr').textContent = e.message;
+    $('login').classList.remove('hidden'); $('phone').classList.add('hidden');
+  } finally {
+    $('loginBtn').disabled = false; $('loginBtn').textContent = 'Go online';
+  }
+}
+$('loginBtn').onclick = goOnline;
+$('password').addEventListener('keydown', e => { if (e.key === 'Enter') goOnline(); });
+
+// ---------- Outbound ----------
+async function makeCall(){
+  let to = $('number').value.trim().replace(/[^\d+*#]/g, '');
+  if (!to) return;
+  if (/^\d{10}$/.test(to)) to = '+1' + to;          // US 10-digit convenience
+  try {
+    setStatus(`Calling ${to}…`, 'busy'); log(`Dialing ${to}`);
+    activeCall = await device.connect({ params: { To: to } });
+    showLive(to, 'Ringing…');
+    wireCall(activeCall, to);
+  } catch (e) { log(`Call failed: ${e.message}`); resetUI(); }
+}
+$('callBtn').onclick = makeCall;
+
+// ---------- Inbound ----------
+function handleIncoming(call){
+  if (activeCall) { call.reject(); log(`Busy — rejected call from ${call.parameters.From}`); return; }
+  pendingCall = call;
+  const from = call.parameters.From || 'Unknown';
+  $('incomingFrom').textContent = from;
+  $('incoming').classList.remove('hidden');
+  setStatus(`Incoming call from ${from}`, 'busy'); log(`Incoming call from ${from}`);
+  const close = () => { $('incoming').classList.add('hidden'); pendingCall = null; };
+  call.on('cancel', () => { close(); log(`Missed call from ${from}`); resetUI(); });
+  call.on('disconnect', close);
+}
+$('acceptBtn').onclick = () => {
+  if (!pendingCall) return;
+  const call = pendingCall, from = call.parameters.From || 'Unknown';
+  $('incoming').classList.add('hidden'); pendingCall = null;
+  call.accept(); activeCall = call;
+  showLive(from, 'On call with'); wireCall(call, from);
+};
+$('rejectBtn').onclick = () => {
+  if (!pendingCall) return;
+  log(`Declined call from ${pendingCall.parameters.From}`);
+  pendingCall.reject(); $('incoming').classList.add('hidden'); pendingCall = null; resetUI();
+};
+
+// ---------- Shared call wiring ----------
+function wireCall(call, who){
+  call.on('accept', () => { $('liveLabel').textContent = 'On call with'; setStatus('On a call', 'busy'); log(`Connected with ${who}`); startTimer(); });
+  call.on('disconnect', () => { log(`Call with ${who} ended`); resetUI(); });
+  call.on('cancel', () => { log('Call canceled'); resetUI(); });
+  call.on('reject', () => { log('Call rejected'); resetUI(); });
+  call.on('error', (e) => log(`Call error: ${e.message}`));
+  call.on('warning', (name) => log(`Call quality warning: ${name}`));
+}
+$('hangBtn').onclick = () => { if (activeCall) activeCall.disconnect(); else resetUI(); };
+$('muteBtn').onclick = () => {
+  if (!activeCall) return;
+  const m = !activeCall.isMuted(); activeCall.mute(m);
+  $('muteBtn').classList.toggle('on', m); $('muteBtn').textContent = m ? '🔇 Muted' : '🎙️ Mute';
+};
+</script>
+</body>
+</html>
