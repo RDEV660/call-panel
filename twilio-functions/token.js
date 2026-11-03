@@ -17,7 +17,7 @@ exports.handler = function (context, event, callback) {
   const AccessToken = Twilio.jwt.AccessToken;
   const VoiceGrant = AccessToken.VoiceGrant;
 
-  const token = new AccessToken(context.ACCOUNT_SID, context.API_KEY, context.API_SECRET, {
+  const token = new AccessToken(context.ACCOUNT_SID, context.PANEL_KEY || context.API_KEY, context.PANEL_SECRET || context.API_SECRET, {
     identity,
     ttl: 3600,
   });

@@ -11,8 +11,8 @@ Make and receive phone calls in your browser. The panel is hosted free on **GitH
 
    | Key | Value |
    |---|---|
-   | `API_KEY` | your API key SID (`SK…`) |
-   | `API_SECRET` | your API key secret |
+   | `PANEL_KEY` | your API key SID (`SK…`) |
+   | `PANEL_SECRET` | your API key secret |
    | `TWIML_APP_SID` | from step 6 below (`AP…`) |
    | `CALLER_ID` | your Twilio number, like `+19565550123` |
    | `PANEL_PASSWORD` | a strong password you'll type into the panel |
