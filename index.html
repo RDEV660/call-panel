@@ -88,6 +88,7 @@
       <div class="sub" id="liveLabel">On call with</div>
       <div class="who" id="liveWho"></div>
       <div class="timer" id="timer">00:00</div>
+      <div class="sub" id="quality" style="margin-top:4px"></div>
     </div>
 
     <input id="number" placeholder="+1 555 555 0123" inputmode="tel" autocomplete="off">
@@ -149,7 +150,7 @@ function showLive(who, label){
   $('muteBtn').classList.remove('on'); $('muteBtn').textContent = '🎙️ Mute';
 }
 function resetUI(){
-  clearInterval(timerInt); activeCall = null;
+  clearInterval(timerInt); activeCall = null; $('quality').textContent = '';
   $('live').classList.remove('show'); $('idleBtns').classList.remove('hidden'); $('callBtns').classList.add('hidden');
   if (device) setStatus('Online — ready for calls', 'ok');
   refreshCallBtn();
@@ -201,7 +202,13 @@ async function goOnline(){
     $('callerIdLabel').textContent = callerId ? `Calling from ${callerId}` : 'Browser softphone';
     $('login').classList.add('hidden'); $('phone').classList.remove('hidden');
 
-    device = new Twilio.Device(token, { codecPreferences: ['opus', 'pcmu'], closeProtection: true, logLevel: 1 });
+    device = new Twilio.Device(token, {
+      codecPreferences: ['opus', 'pcmu'],   // Opus = HD audio on the internet leg
+      edge: ['ashburn', 'umatilla', 'roaming'], // nearest US Twilio data centers, with fallback
+      maxAverageBitrate: 40000,              // top Opus quality
+      enableImprovedSignalingErrorPrecision: true,
+      closeProtection: true, logLevel: 1,
+    });
 
     device.on('registered', () => { setStatus('Online — ready for calls', 'ok'); log(`Registered as <b>${identity}</b>`); refreshCallBtn(); });
     device.on('unregistered', () => setStatus('Offline', 'err'));
@@ -268,7 +275,15 @@ function wireCall(call, who){
   call.on('cancel', () => { log('Call canceled'); resetUI(); });
   call.on('reject', () => { log('Call rejected'); resetUI(); });
   call.on('error', (e) => log(`Call error: ${e.message}`));
-  call.on('warning', (name) => log(`Call quality warning: ${name}`));
+  // Ignore the harmless "no audio yet" warnings while the other phone is still ringing
+  let answered = false; call.on('accept', () => answered = true);
+  call.on('warning', (name) => { if (answered || !/bytes/.test(name)) log(`Call quality warning: ${name}`); });
+  // Live quality meter (MOS 1-5)
+  call.on('sample', (s) => {
+    if (!answered || !s.mos) return;
+    const m = s.mos, label = m >= 4 ? '🟢 Excellent' : m >= 3.5 ? '🟡 Good' : m >= 3 ? '🟠 Fair' : '🔴 Poor';
+    $('quality').textContent = `${label} · ${m.toFixed(1)} / 5 · ${Math.round(s.rtt || 0)} ms`;
+  });
 }
 $('hangBtn').onclick = () => { if (activeCall) activeCall.disconnect(); else resetUI(); };
 $('muteBtn').onclick = () => {
