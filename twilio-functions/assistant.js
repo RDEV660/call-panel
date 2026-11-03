@@ -131,7 +131,7 @@ exports.handler = async function (context, event, callback) {
 
         const transcript = lines.map((l) => `${l.who}: ${l.text}`).join('\n').slice(-8000);
         const today = new Date().toLocaleDateString('en-US', { timeZone: 'America/Chicago', weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-        const prompt = `Sales call notes for Eddieco (builds websites + SEO for local businesses). "You"=Eddieco caller, "Them"=the business. Today is ${today}.
+        const prompt = `Sales call notes for Eddieco (builds websites + SEO for local businesses). "You"=Eddieco caller, "Them"=the business. The call may be in English, Spanish, or a mix — understand both, but write every note in English (keep names as spoken). Today is ${today}.
 ${event.business ? `Business: ${event.business}. ` : ''}Phone: ${event.phone || 'unknown'}.
 Reply with ONLY compact JSON, keys: business_name, contact_name, owner_name, is_decision_maker (yes/no/unknown), interest (hot/warm/cold/not interested/no answer), has_website (yes/no/unknown), meeting_requested (true/false), meeting_time (real date+time, or ""), follow_up, objections, best_contact, summary (max 2 sentences). Use "" when unknown.
 
