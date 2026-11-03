@@ -138,7 +138,7 @@ Reply with ONLY compact JSON, keys: business_name, contact_name, owner_name, is_
 ${transcript}`;
 
         const body = {
-          model: context.SURPLUS_MODEL || 'gemini-3.8-flash',
+          model: context.SURPLUS_MODEL || 'deepseek-v4-pro-0813',
           messages: [{ role: 'user', content: prompt }],
           max_tokens: 400, temperature: 0.1, reasoning_effort: 'low',
         };
