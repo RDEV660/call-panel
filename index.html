@@ -89,6 +89,15 @@
   .pros .acts button{background:none;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit}
   .pros .acts button:hover{color:var(--text)}
   .note{font-size:12px;color:var(--muted);margin:2px 0 8px;min-height:16px}
+  .pros .owner{font-size:12px;margin-top:4px;color:var(--muted)}
+  .pros .owner.known{color:#7ee787}.pros .owner b{color:#fff}
+  .finder{margin-top:10px;border-top:1px dashed var(--line);padding-top:8px;cursor:default}
+  .finder .fhead{font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+  .finder button{background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:inherit}
+  .finder a{display:block;color:#79c0ff;text-decoration:none;font-weight:600;font-size:13px;margin-top:6px}
+  .finder a:hover{text-decoration:underline}
+  .finder .fd{font-size:11px;color:var(--muted)}
+  #askFor{margin-top:8px;text-align:center;font-weight:600;color:#7ee787;font-size:15px}
 
   /* transcript (right) */
   .tx{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;min-height:180px}
@@ -165,6 +174,7 @@
 
       <input id="number" placeholder="+1 555 555 0123" inputmode="tel" autocomplete="off">
       <input id="biz" placeholder="Business name (optional — helps the AI notes)" autocomplete="off">
+      <div id="askFor" class="hidden"></div>
 
       <div class="pad" id="pad"></div>
 
@@ -234,7 +244,10 @@ function log(msg){
   $('log').prepend(d);
 }
 function setStatus(text, kind){ $('statusText').textContent = text; $('dot').className = 'dot ' + (kind||''); }
-function refreshCallBtn(){ $('callBtn').disabled = !device || !$('number').value.trim() || !!activeCall; }
+function refreshCallBtn(){
+  $('callBtn').disabled = !device || !$('number').value.trim() || !!activeCall;
+  if (!activeCall && typeof showAskFor === 'function') showAskFor();
+}
 
 function startTimer(){
   const start = Date.now();
@@ -438,13 +451,17 @@ function renderProspects(){
       <div class="nm"><span>${esc(p.name)}</span>${statusBadge(p.status)}</div>
       <div class="meta">${esc([p.category, p.website === 'facebook' ? 'Facebook only' : 'No website', p.rating ? `★ ${p.rating} (${p.reviews || 0})` : ''].filter(Boolean).join(' · '))}</div>
       <div class="meta">${esc(p.address || '')}</div>
-      <div class="ph">${esc(p.phone || 'no phone listed')}${p.owner ? ` <span style="color:var(--muted);font-family:Inter">· owner: ${esc(p.owner)}</span>` : ''}</div>
+      <div class="ph">${esc(p.phone || 'no phone listed')}</div>
+      <div class="owner ${p.owner ? 'known' : ''}">👤 ${p.owner ? `Owner: <b>${esc(p.owner)}</b>` : 'Owner unknown'}</div>
       ${p.lastNote ? `<div class="last">💬 ${esc(p.lastNote)}</div>` : ''}
       <div class="acts">
         <button data-a="call">📞 Call</button>
+        <button data-a="find">🔍 Find owner</button>
+        <button data-a="own">✏️ Owner</button>
         <button data-a="ni">Not interested</button>
         <button data-a="del">Remove</button>
       </div>
+      ${openFinder === p.id ? ownerFinderHtml(p) : ''}
     </div>`).join('');
   $('prosList').querySelectorAll('.pros').forEach(el => {
     const p = prospects.find(x => String(x.id) === el.dataset.id);
@@ -452,15 +469,62 @@ function renderProspects(){
       const a = e.target.dataset && e.target.dataset.a;
       if (a === 'del') { e.stopPropagation(); return removeProspect(p); }
       if (a === 'ni') { e.stopPropagation(); return updateProspect(p, { status: 'not interested' }); }
+      if (a === 'find') { e.stopPropagation(); openFinder = openFinder === p.id ? null : p.id; return renderProspects(); }
+      if (a === 'own') { e.stopPropagation(); return editOwner(p); }
+      if (e.target.closest('.finder')) { e.stopPropagation(); return; }   // links inside the finder
       selectProspect(p);
       if (a === 'call' && !activeCall && device) makeCall();
     };
   });
 }
 
+// ---------- Owner finder ----------
+let openFinder = null;
+const CITY_RE = /(McAllen|Mission|Pharr|Edinburg|Weslaco|Mercedes|Donna|Alamo|San Juan|Hidalgo|Brownsville|Harlingen|Rio Grande City|Elsa|Edcouch|La Joya|Palmview|Penitas|Alton|Sullivan City|Raymondville|San Benito|Los Fresnos|Port Isabel|Roma)/i;
+function ownerFinderHtml(p){
+  const city = ((p.address || '').match(CITY_RE) || [])[0] || 'Texas';
+  const g = (q) => 'https://www.google.com/search?q=' + encodeURIComponent(q);
+  const cat = (p.category || '').toLowerCase();
+  const isLicensed = /barber|hair|nail|beauty|salon|spa|cosmet|lash|brow/.test(cat) || /barber|nail|salon|beauty|spa/i.test(p.name);
+  const isLLC = /\b(llc|l\.l\.c|inc|corp|co\.)\b/i.test(p.name);
+  const links = [
+    isLicensed && ['🪪 TDLR license search', 'https://www.tdlr.texas.gov/LicenseSearch/', 'Barber shops & salons — the shop license shows the owner. Search the business name.'],
+    ['🏛️ Texas Comptroller (LLCs)', 'https://mycpa.cpa.state.tx.us/coa/', isLLC ? 'This one is an LLC/Inc — the officers listed are usually the owner.' : 'Works if the business is an LLC/Inc. Search the name.'],
+    ['📜 County DBA (assumed name) records', g(`${/brownsville|harlingen|san benito|los fresnos|port isabel/i.test(city) ? 'Cameron' : /raymondville/i.test(city) ? 'Willacy' : /rio grande city|roma/i.test(city) ? 'Starr' : 'Hidalgo'} County Clerk assumed name records search`), 'Sole owners (most taquerías, trucks, lawn crews) file a DBA with their real name.'],
+    ['⭐ Google reviews (owner replies)', 'https://www.google.com/maps/search/' + encodeURIComponent(`${p.name} ${p.address || city}`), 'Open Reviews — owners often sign replies with their name.'],
+    ['📘 Facebook page', 'https://www.facebook.com/search/top?q=' + encodeURIComponent(`${p.name} ${city}`), 'Check About + posts — owners often post as themselves.'],
+    ['🔎 Google: who owns it', g(`"${p.name}" ${city} owner`), 'News articles, ribbon cuttings, and chamber listings name owners.'],
+    /bar|cantina|restaurant|grill|taquer|mariscos|wing|sports/i.test(`${cat} ${p.name}`) && ['🍺 TABC license (if they sell beer)', g('TABC public inquiry license search'), 'Alcohol permits list the owners.'],
+  ].filter(Boolean);
+  return `<div class="finder">
+    <div class="fhead">Copy the name, then check these (top ones first):
+      <button data-copy="${esc(p.name)}">📋 Copy name</button></div>
+    ${links.map(([t, u, d]) => `<a href="${esc(u)}" target="_blank" rel="noopener">${t}</a><div class="fd">${d}</div>`).join('')}
+    <div class="fd" style="margin-top:6px">Found it? Hit <b>✏️ Owner</b> to save it — the coach will tell you to ask for them by name.</div>
+  </div>`;
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-copy]');
+  if (!b) return;
+  e.stopPropagation();
+  try { navigator.clipboard.writeText(b.dataset.copy); b.textContent = '✅ Copied'; setTimeout(() => (b.textContent = '📋 Copy name'), 1500); } catch (x) {}
+}, true);
+async function editOwner(p){
+  const v = prompt(`Owner's name for ${p.name}:`, p.owner || '');
+  if (v === null) return;
+  await updateProspect(p, { owner: v.trim() });
+  if (selectedProspect && selectedProspect.id === p.id) showAskFor();
+}
+function showAskFor(){
+  const o = selectedProspect && selectedProspect.owner;
+  $('askFor').textContent = o ? `👤 Ask for: ${o}` : '';
+  $('askFor').classList.toggle('hidden', !o);
+}
+
 function selectProspect(p){
   if (activeCall) return;
   selectedProspect = p;
+  setTimeout(showAskFor, 0);
   $('number').value = p.phone || '';
   $('biz').value = p.name || '';
   renderProspects(); refreshCallBtn();
@@ -520,12 +584,23 @@ function assistantStart(call, who, dir){
   const sid = dir === 'in'
     ? (call.customParameters && call.customParameters.get('parentSid'))
     : (call.parameters && call.parameters.CallSid);
-  tx = { sid, who, dir, biz: $('biz').value.trim(), prospectId: selectedProspect ? String(selectedProspect.id) : '', poll: null };
+  tx = { sid, who, dir, biz: $('biz').value.trim(), prospectId: selectedProspect ? String(selectedProspect.id) : '',
+         owner: (selectedProspect && selectedProspect.owner) || '', poll: null };
   $('notes').classList.add('hidden');
   $('txState').textContent = '🔴 Live';
   coach = { busy: false, lastCount: 0, timer: null };
   $('coach').classList.remove('hidden', 'thinking');
-  $('coachSay').textContent = 'Listening… tips show up once they start talking.'; $('coachTip').textContent = '';
+  if (dir === 'out' && tx.owner) {
+    const first = tx.owner.split(/\s+/)[0];
+    const hr = new Date().getHours(), saludo = hr < 12 ? 'Buenos días' : hr < 19 ? 'Buenas tardes' : 'Buenas noches';
+    $('coachSay').textContent = `${saludo}, ¿se encuentra ${first}? / Hi, is ${first} in?`;
+    $('coachTip').textContent = '💡 Ask for the owner by name — sounds like you know them';
+  } else {
+    $('coachSay').textContent = dir === 'out'
+      ? 'If an employee answers: "¿Cómo se llama el dueño o la dueña? ¿A qué hora lo puedo encontrar?"'
+      : 'Listening… tips show up once they start talking.';
+    $('coachTip').textContent = dir === 'out' ? '💡 Get the owner\'s name + best time' : '';
+  }
   getAI().catch(() => {});
   if (!sid) { $('tx').innerHTML = '<div class="empty">Transcript not available for this call.</div>'; return; }
   renderLines([]);
@@ -621,7 +696,7 @@ function notesPrompt(lines, t){
   return [{ role: 'user', content:
 `Sales call notes for Eddieco (builds websites + SEO for local businesses in the Rio Grande Valley). "You"=Eddieco caller, "Them"=the business. The call may be in English, Spanish, or a mix — understand both, but write every note in English (keep names as spoken). Today is ${today}.
 ${t.biz ? `Business: ${t.biz}. ` : ''}Phone: ${t.who || 'unknown'}.
-Reply with ONLY compact JSON, keys: business_name, contact_name, owner_name, is_decision_maker (yes/no/unknown), interest (hot/warm/cold/not interested/no answer), has_website (yes/no/unknown), meeting_requested (true/false), meeting_time (real date+time, or ""), follow_up, objections, best_contact, summary (max 2 sentences). If they said they'll call back, put that in follow_up. Use "" when unknown.
+Reply with ONLY compact JSON, keys: business_name, contact_name, owner_name, is_decision_maker (yes/no/unknown), interest (hot/warm/cold/not interested/no answer), has_website (yes/no/unknown), meeting_requested (true/false), meeting_time (real date+time, or ""), follow_up, objections, best_contact, summary (max 2 sentences). If they said they'll call back, put that in follow_up. owner_name = the owner's name if ANYONE mentions it (e.g. an employee says "la dueña es María"). If an employee/manager answered, put when the owner is usually there and how to reach them in follow_up/best_contact. Use "" when unknown.
 
 ${convo(lines).slice(-12000)}` }];
 }
@@ -641,9 +716,13 @@ async function runCoach(lines){
       { role: 'system', content:
 `You are a live cold-call coach for Eddieco, a small local agency that builds websites and does Google/SEO for small businesses in the Rio Grande Valley (McAllen, Mission, Pharr, Edinburg). The caller ("You") is talking to a business ("Them") right now.
 Goal of the call: get the owner/decision maker, find out how they get customers, and book a short meeting (or get a callback time).
+GATEKEEPERS: Many calls are answered by an employee or manager, not the owner. If the person is NOT the owner: don't pitch them. Be warm and brief, and (1) get the owner's first name if we don't know it ("¿Cómo se llama el dueño/la dueña?"), (2) find out when the owner is there or the best time to catch them, (3) ask to be transferred or for the best number to reach them. Asking for the owner BY NAME works much better than "¿está el dueño?". If they ask what it's about, keep it vague and friendly ("es sobre su negocio en Google, nomás le quería hacer una pregunta rápida").
 Give the caller the single best NEXT line to say: natural, friendly, short (max 2 sentences), in the SAME language the business is using (Spanish, English, or Spanglish like the Valley). If they raised an objection (busy, no money, already have Facebook, not interested, "call me later"), handle it briefly and steer toward a specific time. If they're busy, lock a specific callback day/time.
 Reply ONLY JSON: {"say":"...","tip":"3-8 word coaching tip in English"}` },
-      { role: 'user', content: convo(lines).slice(-4000) },
+      { role: 'user', content:
+          (tx.biz ? `Business: ${tx.biz}\n` : '') +
+          (tx.owner ? `Owner's name (from public records): ${tx.owner} — ask for them by name.\n` : `Owner's name: unknown — try to get it.\n`) +
+          `\nConversation so far:\n` + convo(lines).slice(-4000) },
     ], 'coach');
     let c; try { c = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (e) { c = { say: raw.trim() }; }
     if (tx.sid && c.say) { $('coachSay').textContent = c.say; $('coachTip').textContent = c.tip ? '💡 ' + c.tip : ''; }
