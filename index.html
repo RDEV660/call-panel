@@ -125,19 +125,71 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 #2ea04399}100%{box-shadow:0 0 0 22px #2ea04300}}
   .ring .from{font-family:'JetBrains Mono',monospace;font-size:20px;margin:6px 0 20px}
   footer{text-align:center;color:var(--muted);font-size:12px;margin-top:20px}
+  /* game bar */
+  header{flex-wrap:wrap}
+  .game{margin-left:auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px 14px}
+  .lvl{display:flex;align-items:center;gap:10px}
+  .lvl .badge2{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:16px;
+       background:conic-gradient(var(--accent) var(--pct,0%), #2a323d 0);position:relative}
+  .lvl .badge2::after{content:'';position:absolute;inset:4px;border-radius:50%;background:var(--panel)}
+  .lvl .badge2 span{position:relative;z-index:1}
+  .lvl .t{font-size:13px;font-weight:700}.lvl .x{font-size:11px;color:var(--muted)}
+  .stat{font-size:13px;text-align:center;line-height:1.2}.stat b{display:block;font-size:17px}
+  .stat small{color:var(--muted);font-size:11px}
+  .fire b{color:#ffa657}
+  /* tabs */
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tab{flex:1;background:var(--panel2);border:1px solid var(--line);color:var(--muted);border-radius:10px;padding:8px;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit}
+  .tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tab .cnt{background:#da3633;color:#fff;border-radius:99px;padding:0 6px;font-size:11px;margin-left:4px}
+  /* quests + tasks */
+  .quest{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:8px;font-size:13px}
+  .quest.done{border-color:#2ea04388;background:#15251a}
+  .quest .qt{display:flex;justify-content:space-between;gap:8px}.quest .qx{color:#ffa657;font-weight:700;font-size:12px;white-space:nowrap}
+  .bar{height:7px;background:#0d1117;border-radius:99px;margin-top:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#a371f7);border-radius:99px;transition:width .4s}
+  .quest.done .bar i{background:var(--green-h)}
+  .sec{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px}
+  .task{display:flex;gap:10px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;margin-bottom:8px;font-size:13px;cursor:pointer}
+  .task input{width:18px;height:18px;margin:1px 0 0;flex:0 0 auto;accent-color:var(--green-h);cursor:pointer}
+  .task .tt{flex:1}.task.done .tt{text-decoration:line-through;color:var(--muted)}
+  .task .due{font-size:11px;color:var(--muted);margin-top:2px}.task .due.late{color:var(--red-h);font-weight:600}.task .due.today{color:#ffa657;font-weight:600}
+  .task .x{background:none;border:0;color:var(--muted);cursor:pointer;font-size:13px}
+  .addtask{display:flex;gap:6px;margin-bottom:10px}.addtask input{padding:9px 12px;font-size:13px}
+  .addtask input[type=date]{flex:0 0 140px}
+  .lb{font-size:13px}.lb div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}
+  /* toasts + confetti */
+  .toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:50;pointer-events:none}
+  .toast{background:#1f2630;border:1px solid var(--accent);color:#fff;border-radius:12px;padding:10px 14px;font-weight:600;font-size:14px;
+         box-shadow:0 8px 30px #0008;animation:tin .3s ease-out}
+  .toast.big{border-color:#ffa657;font-size:16px}
+  @keyframes tin{from{transform:translateY(20px);opacity:0}}
+  .conf{position:fixed;top:-30px;font-size:22px;z-index:60;pointer-events:none;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+  .owner .src{font-size:10px;color:var(--muted);margin-left:4px}
 </style>
 </head>
 <body>
 <header>
   <div class="logo">E</div>
   <div><h1>Eddieco Call Panel</h1><div class="sub" id="callerIdLabel">Browser softphone</div></div>
+  <div class="game hidden" id="game">
+    <div class="lvl"><div class="badge2" id="lvlRing"><span id="lvlNum">1</span></div>
+      <div><div class="t" id="lvlTitle">Rookie</div><div class="x" id="lvlXp">0 XP</div></div></div>
+    <div class="stat"><b id="sCalls">0</b><small>📞 calls today</small></div>
+    <div class="stat"><b id="sOwners">0</b><small>👤 owners reached</small></div>
+    <div class="stat"><b id="sMeet">0</b><small>📅 meetings</small></div>
+    <div class="stat fire"><b id="sStreak">0</b><small>🔥 day streak</small></div>
+  </div>
 </header>
+<div class="toasts" id="toasts"></div>
 
 <!-- Login -->
 <div id="loginWrap">
   <div class="card" id="login">
     <p style="margin-top:0;color:var(--muted);font-size:14px">Enter your server address and panel password to go online.</p>
     <input id="server" type="url" placeholder="https://call-panel-1234.twil.io" autocomplete="off" style="margin-bottom:10px">
+    <input id="callerName" placeholder="Your name (for the scoreboard)" autocomplete="off" style="margin-bottom:10px">
     <input id="password" type="password" placeholder="Panel password" autocomplete="current-password">
     <div class="err" id="loginErr"></div>
     <button class="btn primary" id="loginBtn" style="width:100%;margin-top:6px">Go online</button>
@@ -147,14 +199,32 @@
 <div class="app hidden" id="app">
   <!-- LEFT: leads to call -->
   <section class="card side" id="left">
-    <div class="toprow"><h2>🎯 Leads to call</h2><span class="sub" id="prosCount"></span></div>
-    <div class="find">
-      <input id="findQ" placeholder="e.g. barbers in McAllen TX" autocomplete="off">
-      <button class="btn primary" id="findBtn">Find</button>
+    <div class="tabs">
+      <button class="tab on" data-tab="leads">🎯 Leads <span class="sub" id="prosCount" style="color:inherit"></span></button>
+      <button class="tab" data-tab="tasks">✅ Tasks & quests <span class="cnt hidden" id="taskCnt"></span></button>
     </div>
-    <div class="note" id="findNote">Finds local businesses with no website (or only Facebook).</div>
-    <div class="filters" id="filters"></div>
-    <div class="scroll" id="prosList"><div class="sub">Loading…</div></div>
+    <div id="paneLeads" style="display:flex;flex-direction:column;min-height:0;flex:1">
+      <div class="find">
+        <input id="findQ" placeholder="Area (Mission TX) or what + where" autocomplete="off">
+        <button class="btn primary" id="findBtn">Find</button>
+        <button class="btn ghost" id="diceBtn" title="Random businesses in this area">🎲</button>
+      </div>
+      <div class="note" id="findNote">Type just an area for a random mix, or "barbers in McAllen". 🎲 = surprise me.</div>
+      <div class="filters" id="filters"></div>
+      <div class="scroll" id="prosList"><div class="sub">Loading…</div></div>
+    </div>
+    <div id="paneTasks" class="hidden" style="flex-direction:column;min-height:0;flex:1">
+      <div class="scroll">
+        <div class="sec" style="margin-top:0">⚡ Today's quests</div>
+        <div id="quests"></div>
+        <div class="sec">✅ Tasks</div>
+        <div class="addtask"><input id="taskIn" placeholder="Add a task…"><input id="taskDue" type="date">
+          <button class="btn primary small" id="taskAdd">+</button></div>
+        <div id="taskList"></div>
+        <div class="sec">🏆 Today's leaderboard</div>
+        <div class="lb" id="board"></div>
+      </div>
+    </div>
   </section>
 
   <!-- CENTER: dialer -->
@@ -312,6 +382,8 @@ async function goOnline(){
   if (!serverUrl) { $('loginErr').textContent = 'Enter your server address'; return; }
   try { localStorage.setItem('eddieco-server', serverUrl); } catch(e){}
   password = $('password').value;
+  me = ($('callerName').value.trim() || me || 'Me').slice(0, 20);
+  try { localStorage.setItem('eddieco-me', me); } catch (e) {}
   $('loginErr').textContent = ''; $('loginBtn').disabled = true; $('loginBtn').textContent = 'Connecting…';
   try {
     const { token, identity, callerId } = await fetchToken();
@@ -333,7 +405,8 @@ async function goOnline(){
     });
     device.on('incoming', handleIncoming);
     await device.register();
-    loadProspects();
+    loadProspects(); loadGame();
+    try { $('findQ').value = localStorage.getItem('eddieco-area') || ''; } catch (e) {}
   } catch (e) {
     $('loginErr').textContent = e.message;
     $('loginWrap').classList.remove('hidden'); $('app').classList.add('hidden');
@@ -392,6 +465,7 @@ function wireCall(call, who, dir){
   call.on('accept', () => {
     answered = true;
     $('liveLabel').textContent = 'On call with'; setStatus('On a call', 'busy'); log(`Connected with ${esc(who)}`); startTimer();
+    callStart = Date.now(); award('call', 10, '📞 Call connected');
     assistantStart(call, who, dir);
   });
   call.on('disconnect', () => { log(`Call with ${esc(who)} ended`); resetUI(); assistantStop(); });
@@ -442,7 +516,7 @@ function renderFilters(){
 
 function renderProspects(){
   renderFilters();
-  $('prosCount').textContent = prospects.length ? `${prospects.length} total` : '';
+  $('prosCount').textContent = prospects.length ? `(${prospects.length})` : '';
   const list = prospects.filter(p => prosFilter === 'all' || statusBucket(p) === prosFilter);
   if (!prospects.length) { $('prosList').innerHTML = '<div class="sub">No leads yet. Search above — try "nail salons in Pharr TX" or "lawn care Mission TX".</div>'; return; }
   if (!list.length) { $('prosList').innerHTML = '<div class="sub">Nothing here.</div>'; return; }
@@ -452,7 +526,7 @@ function renderProspects(){
       <div class="meta">${esc([p.category, p.website === 'facebook' ? 'Facebook only' : 'No website', p.rating ? `★ ${p.rating} (${p.reviews || 0})` : ''].filter(Boolean).join(' · '))}</div>
       <div class="meta">${esc(p.address || '')}</div>
       <div class="ph">${esc(p.phone || 'no phone listed')}</div>
-      <div class="owner ${p.owner ? 'known' : ''}">👤 ${p.owner ? `Owner: <b>${esc(p.owner)}</b>` : 'Owner unknown'}</div>
+      <div class="owner ${p.owner ? 'known' : ''}">👤 ${p.owner ? `Owner: <b>${esc(p.owner)}</b><span class="src">${esc(p.ownerSource || '')}</span>` : (p.ownerChecked ? 'Owner unknown — not in license records' : 'Owner unknown')}</div>
       ${p.lastNote ? `<div class="last">💬 ${esc(p.lastNote)}</div>` : ''}
       <div class="acts">
         <button data-a="call">📞 Call</button>
@@ -469,7 +543,8 @@ function renderProspects(){
       const a = e.target.dataset && e.target.dataset.a;
       if (a === 'del') { e.stopPropagation(); return removeProspect(p); }
       if (a === 'ni') { e.stopPropagation(); return updateProspect(p, { status: 'not interested' }); }
-      if (a === 'find') { e.stopPropagation(); openFinder = openFinder === p.id ? null : p.id; return renderProspects(); }
+      if (a === 'find') { e.stopPropagation(); const open = openFinder !== p.id; openFinder = open ? p.id : null; renderProspects();
+                           if (open && !p.owner) checkOwner(p, false); return; }
       if (a === 'own') { e.stopPropagation(); return editOwner(p); }
       if (e.target.closest('.finder')) { e.stopPropagation(); return; }   // links inside the finder
       selectProspect(p);
@@ -477,6 +552,167 @@ function renderProspects(){
     };
   });
 }
+
+// =====================================================================
+// GAME: XP, levels, streaks, quests, leaderboard   +   TASKS
+// =====================================================================
+let me = ''; try { me = localStorage.getItem('eddieco-me') || ''; $('callerName').value = me; } catch (e) {}
+let events = [], tasks = [], callStart = 0;
+const TITLES = ['Rookie', 'Dialer', 'Hustler', 'Smooth Talker', 'Closer', 'Shark', 'Rainmaker', 'Valley Legend', 'GOAT'];
+const levelOf = (xp) => Math.floor(Math.sqrt(xp / 60)) + 1;
+const xpFor = (lvl) => 60 * (lvl - 1) * (lvl - 1);
+const dayKey = (d) => { const x = new Date(d); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`; };
+const today = () => dayKey(Date.now());
+
+async function loadGame(){
+  $('game').classList.remove('hidden');
+  try { events = (await api('listGet', { list: 'events' })).items; } catch (e) { events = []; }
+  try { tasks = (await api('listGet', { list: 'tasks' })).items; } catch (e) { tasks = []; }
+  renderGame(); renderTasks();
+}
+
+function myEvents(){ return events.filter(e => e.by === me); }
+function renderGame(){
+  const mine = myEvents();
+  const xp = mine.reduce((s, e) => s + (e.xp || 0), 0);
+  const lvl = levelOf(xp), lo = xpFor(lvl), hi = xpFor(lvl + 1);
+  $('lvlNum').textContent = lvl;
+  $('lvlTitle').textContent = `${me} · ${TITLES[Math.min(lvl - 1, TITLES.length - 1)]}`;
+  $('lvlXp').textContent = `${xp} XP · ${hi - xp} to level ${lvl + 1}`;
+  $('lvlRing').style.setProperty('--pct', `${Math.round(100 * (xp - lo) / (hi - lo))}%`);
+  const t = mine.filter(e => e.day === today());
+  $('sCalls').textContent = t.filter(e => e.type === 'call').length;
+  $('sOwners').textContent = t.filter(e => e.type === 'owner_reached').length;
+  $('sMeet').textContent = t.filter(e => e.type === 'meeting').length;
+  // streak: consecutive days (ending today or yesterday) with at least one call
+  const days = new Set(mine.filter(e => e.type === 'call').map(e => e.day));
+  let streak = 0, d = new Date(); if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+  while (days.has(dayKey(d))) { streak++; d.setDate(d.getDate() - 1); }
+  $('sStreak').textContent = streak;
+  renderQuests(); renderBoard();
+}
+
+// Daily quests — 3 per day, same for everyone, change every day
+const QUEST_POOL = [
+  { id: 'calls15', label: 'Make 15 calls', type: 'call', goal: 15, xp: 75 },
+  { id: 'calls25', label: 'Make 25 calls — beast mode', type: 'call', goal: 25, xp: 125 },
+  { id: 'own3', label: 'Talk to 3 owners', type: 'owner_reached', goal: 3, xp: 75 },
+  { id: 'own5', label: 'Talk to 5 owners', type: 'owner_reached', goal: 5, xp: 120 },
+  { id: 'find5', label: 'Find 5 owner names', type: 'owner_found', goal: 5, xp: 60 },
+  { id: 'meet1', label: 'Book a meeting', type: 'meeting', goal: 1, xp: 100 },
+  { id: 'task3', label: 'Finish 3 tasks', type: 'task_done', goal: 3, xp: 50 },
+  { id: 'leads20', label: 'Add 20 new leads', type: 'leads', goal: 20, xp: 40, count: 'xp2' },
+];
+function todaysQuests(){
+  let seed = [...today()].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const pool = [...QUEST_POOL], out = [];
+  const meet = pool.splice(pool.findIndex(q => q.id === 'meet1'), 1)[0];
+  while (out.length < 2) { seed = (seed * 1103515245 + 12345) >>> 0; const q = pool.splice(seed % pool.length, 1)[0]; if (!out.some(o => o.type === q.type)) out.push(q); }
+  return [...out, meet];
+}
+function questProgress(q){
+  const t = myEvents().filter(e => e.day === today() && e.type === q.type);
+  return q.count === 'xp2' ? t.reduce((s, e) => s + (e.xp || 0) / 2, 0) : t.length;
+}
+function renderQuests(){
+  const done = new Set(myEvents().filter(e => e.type === 'quest' && e.day === today()).map(e => e.quest));
+  $('quests').innerHTML = todaysQuests().map(q => {
+    const n = Math.min(questProgress(q), q.goal), ok = done.has(q.id) || n >= q.goal;
+    return `<div class="quest ${ok ? 'done' : ''}"><div class="qt"><span>${ok ? '✅' : '⚡'} ${esc(q.label)}</span><span class="qx">+${q.xp} XP</span></div>
+      <div class="bar"><i style="width:${Math.round(100 * n / q.goal)}%"></i></div><div class="due">${n}/${q.goal}</div></div>`;
+  }).join('');
+}
+function checkQuests(){
+  const done = new Set(myEvents().filter(e => e.type === 'quest' && e.day === today()).map(e => e.quest));
+  todaysQuests().forEach(q => { if (!done.has(q.id) && questProgress(q) >= q.goal) award('quest', q.xp, `⚡ Quest complete: ${q.label}`, true, { quest: q.id }); });
+}
+function renderBoard(){
+  const by = {};
+  events.filter(e => e.day === today()).forEach(e => { by[e.by] = (by[e.by] || 0) + (e.xp || 0); });
+  const rows = Object.entries(by).sort((a, b) => b[1] - a[1]);
+  $('board').innerHTML = rows.length ? rows.map(([n, x], i) => `<div><span>${['🥇','🥈','🥉'][i] || '•'} ${esc(n)}</span><b>${x} XP</b></div>`).join('')
+    : '<div class="sub">No points yet today — make a call!</div>';
+}
+
+async function award(type, xp, msg, big, extra = {}){
+  const before = levelOf(myEvents().reduce((s, e) => s + (e.xp || 0), 0));
+  const ev = { type, xp, by: me, day: today(), ...extra };
+  events.unshift(ev);
+  toast(`${msg}  +${xp} XP`, big);
+  if (big) confetti();
+  renderGame();
+  const after = levelOf(myEvents().reduce((s, e) => s + (e.xp || 0), 0));
+  if (after > before) { setTimeout(() => { toast(`🎉 LEVEL UP! Level ${after} — ${TITLES[Math.min(after - 1, TITLES.length - 1)]}`, true); confetti(); }, 700); }
+  try { const r = await api('listAdd', { list: 'events', data: JSON.stringify(ev) }); Object.assign(ev, r.item); } catch (e) {}
+  if (type !== 'quest') checkQuests();
+}
+
+function toast(msg, big){
+  const d = document.createElement('div'); d.className = 'toast' + (big ? ' big' : ''); d.textContent = msg;
+  $('toasts').appendChild(d); setTimeout(() => d.remove(), big ? 4500 : 2800);
+}
+function confetti(){
+  const bits = ['🎉','✨','💰','🔥','⭐','🎊','💸'];
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement('div'); s.className = 'conf'; s.textContent = bits[i % bits.length];
+    s.style.left = Math.random() * 100 + 'vw'; s.style.animationDuration = (1.8 + Math.random() * 1.8) + 's';
+    s.style.animationDelay = Math.random() * .5 + 's';
+    document.body.appendChild(s); setTimeout(() => s.remove(), 4500);
+  }
+}
+
+// ---------- Tasks ----------
+function dueInfo(due){
+  if (!due) return ['', ''];
+  const d = String(due).slice(0, 10), t = today();
+  if (d < t) return [`⚠️ overdue (${d})`, 'late'];
+  if (d === t) return ['📌 today', 'today'];
+  const dt = new Date(d + 'T12:00'); return [`📆 ${dt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}`, ''];
+}
+function renderTasks(){
+  const open = tasks.filter(t => !t.done).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
+  const doneT = tasks.filter(t => t.done && dayKey(t.doneAt || 0) === today());
+  const dueNow = open.filter(t => t.due && String(t.due).slice(0, 10) <= today()).length;
+  $('taskCnt').textContent = dueNow; $('taskCnt').classList.toggle('hidden', !dueNow);
+  $('taskList').innerHTML = [...open, ...doneT].map(t => {
+    const [label, cls] = dueInfo(t.due);
+    return `<div class="task ${t.done ? 'done' : ''}" data-id="${t.id}">
+      <input type="checkbox" ${t.done ? 'checked' : ''} data-a="tick">
+      <div class="tt">${esc(t.title)}${label || t.by ? `<div class="due ${cls}">${label}${t.by && t.by !== me ? ` · ${esc(t.by)}` : ''}</div>` : ''}</div>
+      <button class="x" data-a="del" title="Delete">✕</button></div>`;
+  }).join('') || '<div class="sub">No tasks. Call-backs and meetings from your calls show up here automatically.</div>';
+  $('taskList').querySelectorAll('.task').forEach(el => {
+    const t = tasks.find(x => String(x.id) === el.dataset.id);
+    el.onclick = async (e) => {
+      const a = e.target.dataset.a;
+      if (a === 'tick') {
+        t.done = e.target.checked; t.doneAt = t.done ? Date.now() : 0; renderTasks();
+        if (t.done) award('task_done', 10, '✅ Task done');
+        try { await api('listUpdate', { list: 'tasks', id: t.id, data: JSON.stringify({ done: t.done, doneAt: t.doneAt }) }); } catch (x) {}
+        return;
+      }
+      if (a === 'del') { tasks = tasks.filter(x => x !== t); renderTasks(); try { await api('listDelete', { list: 'tasks', id: t.id }); } catch (x) {} return; }
+      // click a task → load its lead into the dialer
+      const p = prospects.find(x => String(x.id) === String(t.leadId));
+      if (p) { switchTab('leads'); selectProspect(p); }
+    };
+  });
+}
+async function addTask(title, due, leadId, auto){
+  const t = { title: String(title).slice(0, 200), due: due || '', leadId: leadId ?? '', done: false, by: me };
+  tasks.unshift(t); renderTasks();
+  if (auto) toast('✅ Task added: ' + t.title.slice(0, 60));
+  try { const r = await api('listAdd', { list: 'tasks', data: JSON.stringify(t) }); Object.assign(t, r.item); renderTasks(); } catch (e) {}
+}
+$('taskAdd').onclick = () => { const v = $('taskIn').value.trim(); if (!v) return; addTask(v, $('taskDue').value, selectedProspect && selectedProspect.id); $('taskIn').value = ''; $('taskDue').value = ''; };
+$('taskIn').addEventListener('keydown', e => { if (e.key === 'Enter') $('taskAdd').click(); });
+
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+  $('paneLeads').style.display = name === 'leads' ? 'flex' : 'none';
+  $('paneTasks').classList.toggle('hidden', name !== 'tasks'); $('paneTasks').style.display = name === 'tasks' ? 'flex' : 'none';
+}
+document.querySelectorAll('.tab').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
 
 // ---------- Owner finder ----------
 let openFinder = null;
@@ -512,7 +748,9 @@ document.addEventListener('click', (e) => {
 async function editOwner(p){
   const v = prompt(`Owner's name for ${p.name}:`, p.owner || '');
   if (v === null) return;
-  await updateProspect(p, { owner: v.trim() });
+  const had = !!p.owner;
+  await updateProspect(p, { owner: v.trim(), ownerSource: 'added by you' });
+  if (!had && v.trim()) award('owner_found', 15, `👤 Owner found: ${v.trim()}`);
   if (selectedProspect && selectedProspect.id === p.id) showAskFor();
 }
 function showAskFor(){
@@ -531,24 +769,60 @@ function selectProspect(p){
 }
 
 async function loadProspects(){
-  try { const { prospects: list } = await api('prospects'); prospects = list; renderProspects(); }
+  try { const { prospects: list } = await api('prospects'); prospects = list; renderProspects(); autoOwners(prospects); }
   catch (e) { $('prosList').innerHTML = `<div class="sub">⚠️ ${esc(e.message)}</div>`; }
 }
 
-async function findLeads(){
-  const q = $('findQ').value.trim();
-  if (!q) { $('findQ').focus(); return; }
-  $('findBtn').disabled = true; $('findNote').textContent = '🔎 Searching…';
+async function findLeads(random){
+  let q = $('findQ').value.trim();
+  if (!q) { try { q = localStorage.getItem('eddieco-area') || ''; } catch (e) {} }
+  if (!q) { $('findQ').focus(); $('findNote').textContent = 'Type an area first, like "Mission TX".'; return; }
+  try { const area = q.replace(/^.*\s(in|near|around)\s/i, ''); localStorage.setItem('eddieco-area', area); } catch (e) {}
+  $('findBtn').disabled = $('diceBtn').disabled = true; $('findNote').textContent = random ? '🎲 Rolling the dice…' : '🔎 Searching…';
   try {
-    const r = await api('find', { q });
+    const before = new Set(prospects.map(p => p.id));
+    const r = await api('find', { q, random: random ? '1' : '' });
     prospects = r.prospects;
     prosFilter = 'new'; renderProspects();
     $('findNote').textContent = `Added ${r.added} new lead${r.added === 1 ? '' : 's'} with no website` +
-      (r.skipped ? ` · skipped ${r.skipped} that have a site or are already listed` : '') + ` · source: ${r.source}`;
+      (r.kinds && r.kinds.length ? ` · 🎲 ${r.kinds.join(', ')}` : '') +
+      (r.skipped ? ` · skipped ${r.skipped}` : '') + (/Google/.test(r.source) ? '' : ` · ${r.source}`);
+    if (r.added) { award('leads', 2 * r.added, `🎯 +${r.added} leads`); }
+    autoOwners(prospects.filter(p => !before.has(p.id)));
   } catch (e) { $('findNote').textContent = '⚠️ ' + e.message; }
-  finally { $('findBtn').disabled = false; }
+  finally { $('findBtn').disabled = $('diceBtn').disabled = false; }
 }
-$('findBtn').onclick = findLeads;
+// Check state license records for owner names, one lead at a time in the background
+let ownerQueue = [], ownerRunning = false;
+function autoOwners(list){ ownerQueue.push(...list.filter(p => !p.owner && !p.ownerChecked)); runOwnerQueue(); }
+async function runOwnerQueue(){
+  if (ownerRunning) return; ownerRunning = true;
+  let found = 0, n = 0;
+  if (!ownerQueue.length) { ownerRunning = false; return; }
+  $('findNote').dataset.base = $('findNote').textContent;
+  while (ownerQueue.length) {
+    const p = ownerQueue.shift(); n++;
+    $('findNote').textContent = `👤 Checking owner records… ${n}/${n + ownerQueue.length}`;
+    const hit = await checkOwner(p, true);
+    if (hit) found++;
+  }
+  $('findNote').textContent = ($('findNote').dataset.base || '') + (n ? ` · 👤 found ${found} owner name${found === 1 ? '' : 's'} automatically` : '');
+  delete $('findNote').dataset.base;
+  ownerRunning = false;
+}
+async function checkOwner(p, quiet){
+  try {
+    const r = await api('findOwner', { id: p.id });
+    const i = prospects.findIndex(x => x.id === p.id);
+    if (i >= 0 && r.prospect) prospects[i] = r.prospect;
+    renderProspects();
+    if (r.found) { award('owner_found', 15, `👤 Owner found: ${r.owner}`); return true; }
+    if (!quiet) toast(r.note || 'No owner in state license records — try the links below', false);
+  } catch (e) { if (!quiet) toast('⚠️ ' + e.message); }
+  return false;
+}
+$('findBtn').onclick = () => findLeads(false);
+$('diceBtn').onclick = () => findLeads(true);
 $('findQ').addEventListener('keydown', e => { if (e.key === 'Enter') findLeads(); });
 
 async function updateProspect(p, fields){
@@ -652,7 +926,19 @@ async function assistantStop(){
       const interest = String(L.interest || '').toLowerCase();
       const status = L.meeting_requested ? 'meeting' : (['hot','warm','cold','not interested','no answer'].includes(interest) ? interest : 'called');
       const note = L.meeting_requested && L.meeting_time ? `Meeting: ${L.meeting_time}` : (L.follow_up || L.summary || '');
-      await updateProspect(p, { status, lastNote: note, lastCalled: new Date().toISOString(), owner: L.owner_name || p.owner || '' });
+      const newOwner = !p.owner && L.owner_name;
+      await updateProspect(p, { status, lastNote: note, lastCalled: new Date().toISOString(), owner: L.owner_name || p.owner || '',
+                                ownerSource: newOwner ? 'from the call' : (p.ownerSource || '') });
+      if (newOwner) award('owner_found', 15, `👤 Owner found: ${L.owner_name}`);
+    }
+    // Game + tasks
+    const bizName = L.business_name || t.biz || t.who;
+    if (String(L.is_decision_maker).toLowerCase() === 'yes') award('owner_reached', 25, '🗣️ Talked to the owner!');
+    if (L.meeting_requested) {
+      award('meeting', 100, `📅 MEETING BOOKED with ${bizName}!`, true);
+      addTask(`📅 Meeting: ${bizName}${L.meeting_time ? ' — ' + L.meeting_time : ''}`, L.follow_up_date || '', p && p.id, true);
+    } else if (L.follow_up && !/not interested/i.test(L.interest || '')) {
+      addTask(`📞 ${bizName}: ${L.follow_up}`, L.follow_up_date || '', p && p.id, true);
     }
     $('biz').value = ''; $('number').value = ''; selectedProspect = null; refreshCallBtn(); renderProspects();
   } catch (e) {
@@ -696,7 +982,7 @@ function notesPrompt(lines, t){
   return [{ role: 'user', content:
 `Sales call notes for Eddieco (builds websites + SEO for local businesses in the Rio Grande Valley). "You"=Eddieco caller, "Them"=the business. The call may be in English, Spanish, or a mix — understand both, but write every note in English (keep names as spoken). Today is ${today}.
 ${t.biz ? `Business: ${t.biz}. ` : ''}Phone: ${t.who || 'unknown'}.
-Reply with ONLY compact JSON, keys: business_name, contact_name, owner_name, is_decision_maker (yes/no/unknown), interest (hot/warm/cold/not interested/no answer), has_website (yes/no/unknown), meeting_requested (true/false), meeting_time (real date+time, or ""), follow_up, objections, best_contact, summary (max 2 sentences). If they said they'll call back, put that in follow_up. owner_name = the owner's name if ANYONE mentions it (e.g. an employee says "la dueña es María"). If an employee/manager answered, put when the owner is usually there and how to reach them in follow_up/best_contact. Use "" when unknown.
+Reply with ONLY compact JSON, keys: business_name, contact_name, owner_name, is_decision_maker (yes/no/unknown), interest (hot/warm/cold/not interested/no answer), has_website (yes/no/unknown), meeting_requested (true/false), meeting_time (real date+time, or ""), follow_up, objections, best_contact, follow_up_date (YYYY-MM-DD of the callback/meeting, or ""), summary (max 2 sentences). If they said they'll call back, put that in follow_up. owner_name = the owner's name if ANYONE mentions it (e.g. an employee says "la dueña es María"). If an employee/manager answered, put when the owner is usually there and how to reach them in follow_up/best_contact. Use "" when unknown.
 
 ${convo(lines).slice(-12000)}` }];
 }
