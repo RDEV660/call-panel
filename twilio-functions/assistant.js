@@ -193,7 +193,7 @@ ${transcript}`;
         const body = {
           model: context.SURPLUS_MODEL || 'deepseek-v4-pro-0813',
           messages: [{ role: 'user', content: prompt }],
-          max_tokens: 400, temperature: 0.1, reasoning_effort: 'low',
+          max_tokens: 4000, temperature: 0.1, reasoning_effort: 'low',
         };
         if (context.SURPLUS_PROVIDER) body.provider_order = context.SURPLUS_PROVIDER.split(',').map((s) => s.trim());
 

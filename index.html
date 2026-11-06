@@ -901,7 +901,8 @@ async function assistantStop(){
         const raw = await surplus(notesPrompt(lines, t), 'notes');
         let lead;
         try { lead = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)); } catch (e) { lead = { summary: raw.trim() || 'AI gave no answer' }; }
-        res = await api('saveLead', { callSid: t.sid, phone: t.who, direction: t.dir, prospectId: t.prospectId, lead: JSON.stringify(lead) });
+        try { res = await api('saveLead', { callSid: t.sid, phone: t.who, direction: t.dir, prospectId: t.prospectId, lead: JSON.stringify(lead) }); }
+        catch (e) { if (/Unknown action/.test(e.message)) throw new Error('Your /assistant function in Twilio is an old version — paste the latest one and Deploy All'); throw e; }
       }
     } catch (e) {
       if (!e.fallback) throw e;
@@ -955,7 +956,7 @@ async function surplus(messages, kind){
   if (!directOK) { const e = new Error('direct off'); e.fallback = true; throw e; }
   const cfg = await getAI();
   const body = { model: kind === 'coach' ? cfg.coachModel : cfg.model, messages,
-                 max_tokens: kind === 'coach' ? 160 : 500, temperature: kind === 'coach' ? 0.4 : 0.1 };
+                 max_tokens: kind === 'coach' ? 2000 : 6000, temperature: kind === 'coach' ? 0.4 : 0.1 };   // room for 'thinking' models
   if (cfg.provider) body.provider_order = cfg.provider.split(',').map(s => s.trim());
   const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), kind === 'coach' ? 25000 : 90000);
   let r;
@@ -973,7 +974,15 @@ async function surplus(messages, kind){
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error('Surplus: ' + ((j.error && (j.error.message || j.error)) || r.status));
   const m = j.choices && j.choices[0] && j.choices[0].message;
-  return (m && (m.content || '')) || '';
+  const text = (m && typeof m.content === 'string' ? m.content : '') || '';
+  if (!text.trim()) {
+    const why = j.choices && j.choices[0] && j.choices[0].finish_reason;
+    // Some thinking models put the answer only in their reasoning — grab JSON from there if so
+    const r = m && (m.reasoning_content || m.reasoning || '');
+    if (r && r.includes('{') && r.includes('}')) return r.slice(r.lastIndexOf('{', r.lastIndexOf('}')), r.lastIndexOf('}') + 1);
+    throw new Error(why === 'length' ? `${body.model} ran out of room while thinking — try a faster model` : `${body.model} sent back an empty answer${why ? ' (' + why + ')' : ''}`);
+  }
+  return text;
 }
 
 const convo = (lines) => lines.map(l => `${l.who}: ${l.text}`).join('\n');
