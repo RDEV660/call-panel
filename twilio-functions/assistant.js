@@ -171,8 +171,14 @@ exports.handler = async function (context, event, callback) {
       // ----- live transcript -----
       case 'live': {
         if (!callSid) return send(400, { error: 'Missing callSid' });
-        const items = await listAll(sync, `t-${callSid}`);
-        return send(200, { lines: items.map((i) => i.data).sort((a, b) => a.t - b.t) });
+        const [items, partials] = await Promise.all([
+          listAll(sync, `t-${callSid}`),
+          sync.syncMaps(`p-${callSid}`).syncMapItems.list({ pageSize: 10 }).catch(() => []),
+        ]);
+        return send(200, {
+          lines: items.map((i) => i.data).sort((a, b) => a.t - b.t),
+          partials: partials.map((i) => i.data).filter((d) => Date.now() - d.updated < 20000),
+        });
       }
 
       // ----- AI call notes -----

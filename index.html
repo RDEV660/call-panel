@@ -103,6 +103,9 @@
   .tx{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;min-height:180px}
   .tx .ln{margin:4px 0}.tx .you{color:#79c0ff}.tx .them{color:#ffa657}
   .tx .empty{color:var(--muted);font-size:13px}
+  .tx .ln.live{opacity:.75;font-style:italic}
+  .tx .dots{font-size:8px;color:var(--muted);letter-spacing:2px;animation:blink 1s infinite}
+  @keyframes blink{50%{opacity:.2}}
   .coach{background:linear-gradient(135deg,#1d2b1f,#16251a);border:1px solid #2ea04366;border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px}
   .coach .lbl{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--green-h);text-transform:uppercase;display:flex;justify-content:space-between}
   .coach .say{font-size:16px;line-height:1.45;margin-top:6px;color:#fff}
@@ -841,17 +844,24 @@ async function removeProspect(p){
 // =====================================================================
 let tx = { sid: null, who: '', dir: '', biz: '', prospectId: '', poll: null };
 
-function renderLines(lines){
+function renderLines(lines, partials = []){
+  // Live (still-talking) words: hide any that already landed as a finished line
+  const finalsText = lines.slice(-6).map(l => l.text.toLowerCase());
+  const live = partials.filter(p => p.text && !finalsText.some(f => f.includes(p.text.toLowerCase().slice(0, 40))))
+                       .map(p => ({ who: p.who, text: p.text, t: p.start, live: true }));
+  lines = [...lines, ...live].sort((a, b) => a.t - b.t);
   if (!lines.length) { $('tx').innerHTML = '<div class="empty">🎧 Listening… words appear here a second or two after they\'re spoken.</div>'; return; }
   const box = $('tx').parentElement;
   const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 40;
-  $('tx').innerHTML = lines.map(l => `<div class="ln"><b class="${l.who === 'You' ? 'you' : 'them'}">${esc(l.who)}:</b> ${esc(l.text)}</div>`).join('');
+  $('tx').innerHTML = lines.map(l => `<div class="ln${l.live ? ' live' : ''}"><b class="${l.who === 'You' ? 'you' : 'them'}">${esc(l.who)}:</b> ${esc(l.text)}${l.live ? ' <span class="dots">●●●</span>' : ''}</div>`).join('');
   if (atBottom) box.scrollTop = box.scrollHeight;
 }
 async function pollTranscript(){
   if (!tx.sid) return;
-  try { const { lines } = await api('live', { callSid: tx.sid }); renderLines(lines); tx.lines = lines; maybeCoach(lines); }
+  if (tx.polling) return; tx.polling = true;
+  try { const { lines, partials } = await api('live', { callSid: tx.sid }); renderLines(lines, partials || []); tx.lines = lines; maybeCoach(lines); }
   catch (e) { $('tx').innerHTML = `<div class="empty">Transcript unavailable: ${esc(e.message)}</div>`; clearInterval(tx.poll); }
+  finally { tx.polling = false; }
 }
 
 function assistantStart(call, who, dir){
@@ -878,7 +888,7 @@ function assistantStart(call, who, dir){
   getAI().catch(() => {});
   if (!sid) { $('tx').innerHTML = '<div class="empty">Transcript not available for this call.</div>'; return; }
   renderLines([]);
-  tx.poll = setInterval(pollTranscript, 2000);
+  tx.poll = setInterval(pollTranscript, 1000);
 }
 
 async function assistantStop(){
@@ -889,6 +899,7 @@ async function assistantStop(){
   $('notes').classList.remove('hidden');
   $('notes').innerHTML = '🤖 Writing call notes…';
   await new Promise(r => setTimeout(r, 2500));
+  while (tx.polling) await new Promise(r => setTimeout(r, 100));
   tx.sid = t.sid; await pollTranscript(); tx.sid = null;
   try {
     clearTimeout(coach.timer); $('coach').classList.remove('thinking');

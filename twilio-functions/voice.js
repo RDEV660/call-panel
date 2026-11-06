@@ -11,7 +11,7 @@ exports.handler = function (context, event, callback) {
 
   const startTranscript = (dir) => !transcribe ? '' :
     `<Start><Transcription statusCallbackUrl="https://${esc(context.DOMAIN_NAME)}/transcript?dir=${dir}" track="both_tracks" ` +
-    `partialResults="false" transcriptionEngine="deepgram" speechModel="nova-3" ` +
+    `partialResults="true" transcriptionEngine="deepgram" speechModel="nova-3" ` +
     `languageCode="${esc(context.TRANSCRIBE_LANGUAGE || 'multi')}"/></Start>`;
 
   let body;
